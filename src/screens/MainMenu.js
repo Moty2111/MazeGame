@@ -4,18 +4,14 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   Animated,
   StatusBar,
 } from 'react-native';
-import { COLORS, FONTS } from '../constants';
-
-const { width, height } = Dimensions.get('window');
+import { COLORS } from '../constants';
 
 export default function MainMenu({ onPlay, onSettings, onAbout }) {
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const btnAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -31,14 +27,6 @@ export default function MainMenu({ onPlay, onSettings, onAbout }) {
       delay: 200,
       useNativeDriver: true,
     }).start();
-
-    Animated.stagger(150, [
-      Animated.timing(btnAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
   }, []);
 
   const catBounce = bounceAnim.interpolate({
@@ -46,65 +34,33 @@ export default function MainMenu({ onPlay, onSettings, onAbout }) {
     outputRange: [0, -20, 0],
   });
 
-  const btnScale = btnAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.8, 1],
-  });
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
-
-      <Animated.View style={[styles.decorTopLeft]}>
-        <Text style={styles.decorText}>✦</Text>
-      </Animated.View>
-      <Animated.View style={[styles.decorTopRight]}>
-        <Text style={styles.decorText}>✧</Text>
-      </Animated.View>
-
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <Animated.View style={{ transform: [{ translateY: catBounce }] }}>
           <Text style={styles.catEmoji}>🐱</Text>
         </Animated.View>
-
         <Text style={styles.title}>Лабиринт</Text>
         <Text style={styles.subtitle}>для Кати</Text>
-
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerStar}>✦</Text>
           <View style={styles.dividerLine} />
         </View>
-
         <Text style={styles.hintText}>Найди путь к подарку 🎁</Text>
-
-        <TouchableOpacity
-          style={styles.playButton}
-          onPress={onPlay}
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.playButton} onPress={onPlay} activeOpacity={0.8}>
           <Text style={styles.playButtonText}>🎮 Играть</Text>
         </TouchableOpacity>
-
         <View style={styles.secondaryButtons}>
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={onSettings}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.secondaryBtn} onPress={onSettings} activeOpacity={0.7}>
             <Text style={styles.secondaryBtnText}>⚙️ Настройки</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={onAbout}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.secondaryBtn} onPress={onAbout} activeOpacity={0.7}>
             <Text style={styles.secondaryBtnText}>👤 Об игре</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
-
       <Text style={styles.versionText}>v1.0</Text>
     </View>
   );
@@ -122,34 +78,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
-  decorTopLeft: {
-    position: 'absolute',
-    top: 60,
-    left: 30,
-  },
-  decorTopRight: {
-    position: 'absolute',
-    top: 60,
-    right: 30,
-  },
-  decorText: {
-    fontSize: 28,
-    color: COLORS.primary,
-    opacity: 0.5,
-  },
   catEmoji: {
     fontSize: 72,
     marginBottom: 8,
   },
   title: {
     fontSize: 48,
-    fontFamily: FONTS.bold,
     color: COLORS.text,
     letterSpacing: 2,
   },
   subtitle: {
     fontSize: 36,
-    fontFamily: FONTS.bold,
     color: COLORS.primaryDark,
     marginTop: -8,
     marginBottom: 16,
@@ -173,7 +112,6 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 18,
-    fontFamily: FONTS.regular,
     color: COLORS.textLight,
     marginBottom: 32,
   },
@@ -191,7 +129,6 @@ const styles = StyleSheet.create({
   },
   playButtonText: {
     fontSize: 24,
-    fontFamily: FONTS.bold,
     color: COLORS.white,
     letterSpacing: 1,
   },
@@ -207,21 +144,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.primary,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
   secondaryBtnText: {
     fontSize: 16,
-    fontFamily: FONTS.regular,
     color: COLORS.text,
   },
   versionText: {
     position: 'absolute',
     bottom: 24,
     fontSize: 14,
-    fontFamily: FONTS.regular,
     color: COLORS.textLight,
   },
 });

@@ -5,28 +5,33 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  ScrollView,
 } from 'react-native';
-import { COLORS, FONTS, CONTROL_MODES } from '../constants';
+import { COLORS, CONTROL_MODES } from '../constants';
 
 export default function Settings({ onBack, settings, onUpdateSettings }) {
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [volume, setVolume] = useState(settings.volume);
   const [controlMode, setControlMode] = useState(settings.controlMode);
 
+  const update = (key, value) => {
+    onUpdateSettings({ ...settings, [key]: value });
+  };
+
   const handleSoundToggle = () => {
     const newVal = !soundEnabled;
     setSoundEnabled(newVal);
-    onUpdateSettings({ ...settings, soundEnabled: newVal });
+    update('soundEnabled', newVal);
   };
 
   const handleVolumeChange = (newVolume) => {
     setVolume(newVolume);
-    onUpdateSettings({ ...settings, volume: newVolume });
+    update('volume', newVolume);
   };
 
   const handleControlMode = (mode) => {
     setControlMode(mode);
-    onUpdateSettings({ ...settings, controlMode: mode });
+    update('controlMode', mode);
   };
 
   const VOLUME_LEVELS = [
@@ -39,85 +44,62 @@ export default function Settings({ onBack, settings, onUpdateSettings }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
-
       <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
         <Text style={styles.backBtnText}>← Назад</Text>
       </TouchableOpacity>
-
       <Text style={styles.title}>Настройки</Text>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🔊 Звук</Text>
-        <TouchableOpacity style={styles.toggleRow} onPress={handleSoundToggle}>
-          <Text style={styles.toggleLabel}>Музыка</Text>
-          <View style={[styles.toggle, soundEnabled && styles.toggleActive]}>
-            <View style={[styles.toggleCircle, soundEnabled && styles.toggleCircleActive]} />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔊 Звук</Text>
+          <TouchableOpacity style={styles.toggleRow} onPress={handleSoundToggle}>
+            <Text style={styles.toggleLabel}>Музыка</Text>
+            <View style={[styles.toggle, soundEnabled && styles.toggleActive]}>
+              <View style={[styles.toggleCircle, soundEnabled && styles.toggleCircleActive]} />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.volumeLabel}>Громкость</Text>
+          <View style={styles.volumeRow}>
+            {VOLUME_LEVELS.map((level) => (
+              <TouchableOpacity
+                key={level.value}
+                style={[styles.volumeBtn, volume === level.value && styles.volumeBtnActive]}
+                onPress={() => handleVolumeChange(level.value)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.volumeBtnText, volume === level.value && styles.volumeBtnTextActive]}>
+                  {level.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        </TouchableOpacity>
-
-        <Text style={styles.volumeLabel}>Громкость</Text>
-        <View style={styles.volumeRow}>
-          {VOLUME_LEVELS.map((level) => (
+        </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🎮 Управление</Text>
+          {CONTROL_MODES.map((mode) => (
             <TouchableOpacity
-              key={level.value}
-              style={[
-                styles.volumeBtn,
-                volume === level.value && styles.volumeBtnActive,
-              ]}
-              onPress={() => handleVolumeChange(level.value)}
+              key={mode.id}
+              style={[styles.controlRow, controlMode === mode.id && styles.controlRowActive]}
+              onPress={() => handleControlMode(mode.id)}
               activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  styles.volumeBtnText,
-                  volume === level.value && styles.volumeBtnTextActive,
-                ]}
-              >
-                {level.label}
+              <Text style={styles.controlIcon}>{mode.icon}</Text>
+              <Text style={[styles.controlLabel, controlMode === mode.id && styles.controlLabelActive]}>
+                {mode.label}
               </Text>
+              <View style={[styles.radio, controlMode === mode.id && styles.radioActive]}>
+                {controlMode === mode.id && <View style={styles.radioInner} />}
+              </View>
             </TouchableOpacity>
           ))}
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🎮 Управление</Text>
-        {CONTROL_MODES.map((mode) => (
-          <TouchableOpacity
-            key={mode.id}
-            style={[
-              styles.controlRow,
-              controlMode === mode.id && styles.controlRowActive,
-            ]}
-            onPress={() => handleControlMode(mode.id)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.controlIcon}>{mode.icon}</Text>
-            <Text
-              style={[
-                styles.controlLabel,
-                controlMode === mode.id && styles.controlLabelActive,
-              ]}
-            >
-              {mode.label}
-            </Text>
-            <View
-              style={[
-                styles.radio,
-                controlMode === mode.id && styles.radioActive,
-              ]}
-            >
-              {controlMode === mode.id && <View style={styles.radioInner} />}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.hint}>
-        💡 Свайпы — проведи по лабиринту{'\n'}
-        🔘 Кнопки — нажми стрелки{'\n'}
-        📱 Наклон — поверни телефон
-      </Text>
+        <View style={styles.helpCard}>
+          <Text style={styles.helpText}>
+            👆 Свайпы — проведи по лабиринту{'\n'}
+            🔘 Кнопки — нажми стрелки{'\n'}
+            📱 Наклон — поверни телефон
+          </Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -129,48 +111,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
   },
-  backBtn: {
-    marginBottom: 16,
-  },
-  backBtnText: {
-    fontSize: 22,
-    fontFamily: FONTS.bold,
-    color: COLORS.primaryDark,
-  },
-  title: {
-    fontSize: 36,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-    marginBottom: 24,
-  },
+  backBtn: { marginBottom: 16 },
+  backBtnText: { fontSize: 22, color: COLORS.primaryDark },
+  title: { fontSize: 36, color: COLORS.text, marginBottom: 24 },
   section: {
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-    marginBottom: 16,
-  },
+  sectionTitle: { fontSize: 22, color: COLORS.text, marginBottom: 16 },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  toggleLabel: {
-    fontSize: 18,
-    fontFamily: FONTS.regular,
-    color: COLORS.text,
-  },
+  toggleLabel: { fontSize: 18, color: COLORS.text },
   toggle: {
     width: 50,
     height: 28,
@@ -179,33 +137,17 @@ const styles = StyleSheet.create({
     padding: 2,
     justifyContent: 'center',
   },
-  toggleActive: {
-    backgroundColor: COLORS.secondary,
-  },
+  toggleActive: { backgroundColor: COLORS.secondary },
   toggleCircle: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: COLORS.white,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
-  toggleCircleActive: {
-    alignSelf: 'flex-end',
-  },
-  volumeLabel: {
-    fontSize: 16,
-    fontFamily: FONTS.regular,
-    color: COLORS.textLight,
-    marginBottom: 8,
-  },
-  volumeRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  toggleCircleActive: { alignSelf: 'flex-end' },
+  volumeLabel: { fontSize: 16, color: COLORS.textLight, marginBottom: 8 },
+  volumeRow: { flexDirection: 'row', gap: 8 },
   volumeBtn: {
     flex: 1,
     paddingVertical: 10,
@@ -215,18 +157,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.bgDark,
   },
-  volumeBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  volumeBtnText: {
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-    color: COLORS.text,
-  },
-  volumeBtnTextActive: {
-    color: COLORS.white,
-  },
+  volumeBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  volumeBtnText: { fontSize: 14, color: COLORS.text },
+  volumeBtnTextActive: { color: COLORS.white },
   controlRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -237,24 +170,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.bgDark,
   },
-  controlRowActive: {
-    backgroundColor: COLORS.lavender + '20',
-    borderColor: COLORS.primary,
-  },
-  controlIcon: {
-    fontSize: 22,
-    marginRight: 12,
-  },
-  controlLabel: {
-    flex: 1,
-    fontSize: 18,
-    fontFamily: FONTS.regular,
-    color: COLORS.text,
-  },
-  controlLabelActive: {
-    fontFamily: FONTS.bold,
-    color: COLORS.primaryDark,
-  },
+  controlRowActive: { backgroundColor: COLORS.lavender + '20', borderColor: COLORS.primary },
+  controlIcon: { fontSize: 22, marginRight: 12 },
+  controlLabel: { flex: 1, fontSize: 18, color: COLORS.text },
+  controlLabelActive: { color: COLORS.primaryDark },
   radio: {
     width: 22,
     height: 22,
@@ -264,20 +183,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioActive: {
-    borderColor: COLORS.primaryDark,
+  radioActive: { borderColor: COLORS.primaryDark },
+  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primaryDark },
+  helpCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    elevation: 2,
   },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.primaryDark,
-  },
-  hint: {
-    fontSize: 15,
-    fontFamily: FONTS.regular,
-    color: COLORS.textLight,
-    marginTop: 8,
-    lineHeight: 22,
-  },
+  helpText: { fontSize: 15, color: COLORS.textLight, lineHeight: 22 },
 });

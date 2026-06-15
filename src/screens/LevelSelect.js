@@ -7,22 +7,17 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
-import { COLORS, FONTS, LEVELS } from '../constants';
+import { COLORS, LEVELS } from '../constants';
 
 export default function LevelSelect({ onBack, onSelectLevel, completedLevels, currentLevel }) {
-  const isLevelUnlocked = (levelId) => {
-    if (levelId === 0) return true;
-    return completedLevels.includes(levelId - 1);
-  };
-
-  const getLevelStatus = (levelId) => {
+  const getStatus = (levelId) => {
     if (completedLevels.includes(levelId)) return 'completed';
     if (levelId === currentLevel) return 'current';
-    if (isLevelUnlocked(levelId)) return 'unlocked';
+    if (levelId === 0 || completedLevels.includes(levelId - 1)) return 'unlocked';
     return 'locked';
   };
 
-  const getStatusEmoji = (status) => {
+  const statusEmoji = (status) => {
     switch (status) {
       case 'completed': return '✅';
       case 'current': return '▶️';
@@ -34,20 +29,13 @@ export default function LevelSelect({ onBack, onSelectLevel, completedLevels, cu
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
-
       <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
         <Text style={styles.backBtnText}>← Назад</Text>
       </TouchableOpacity>
-
       <Text style={styles.title}>Выбрать уровень</Text>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {LEVELS.map((level, index) => {
-          const status = getLevelStatus(level.id);
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {LEVELS.map((level) => {
+          const status = getStatus(level.id);
           const isLocked = status === 'locked';
           const isCompleted = status === 'completed';
 
@@ -66,31 +54,16 @@ export default function LevelSelect({ onBack, onSelectLevel, completedLevels, cu
             >
               <View style={styles.levelHeader}>
                 <Text style={styles.levelNumber}>{level.id + 1}</Text>
-                <Text style={styles.statusEmoji}>{getStatusEmoji(status)}</Text>
+                <Text style={{ fontSize: 16, marginTop: 4 }}>{statusEmoji(status)}</Text>
               </View>
-
               <View style={styles.levelInfo}>
-                <Text
-                  style={[
-                    styles.levelName,
-                    isLocked && styles.levelTextLocked,
-                  ]}
-                >
+                <Text style={[styles.levelName, isLocked && styles.levelTextLocked]}>
                   {level.name}
                 </Text>
-                <Text
-                  style={[
-                    styles.levelSubtitle,
-                    isLocked && styles.levelTextLocked,
-                  ]}
-                >
+                <Text style={[styles.levelSubtitle, isLocked && styles.levelTextLocked]}>
                   {level.subtitle} • {level.rows}×{level.cols}
                 </Text>
               </View>
-
-              {index < LEVELS.length - 1 && !isCompleted && (
-                <View style={styles.connector} />
-              )}
             </TouchableOpacity>
           );
         })}
@@ -106,26 +79,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
   },
-  backBtn: {
-    marginBottom: 16,
-  },
-  backBtnText: {
-    fontSize: 22,
-    fontFamily: FONTS.bold,
-    color: COLORS.primaryDark,
-  },
-  title: {
-    fontSize: 36,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-    marginBottom: 24,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 24,
-  },
+  backBtn: { marginBottom: 16 },
+  backBtnText: { fontSize: 22, color: COLORS.primaryDark },
+  title: { fontSize: 36, color: COLORS.text, marginBottom: 24 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 24 },
   levelCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -134,58 +92,16 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 8,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  levelCardCompleted: {
-    borderColor: COLORS.secondary,
-    backgroundColor: COLORS.white,
-  },
-  levelCardCurrent: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.lavender + '15',
-  },
-  levelCardLocked: {
-    opacity: 0.5,
-    backgroundColor: COLORS.bgDark,
-  },
-  levelHeader: {
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  levelNumber: {
-    fontSize: 28,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-    width: 40,
-    textAlign: 'center',
-  },
-  statusEmoji: {
-    fontSize: 16,
-    marginTop: 4,
-  },
-  levelInfo: {
-    flex: 1,
-  },
-  levelName: {
-    fontSize: 20,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-  },
-  levelSubtitle: {
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-    color: COLORS.textLight,
-    marginTop: 2,
-  },
-  levelTextLocked: {
-    color: COLORS.textLight,
-  },
-  connector: {
-    display: 'none',
-  },
+  levelCardCompleted: { borderColor: COLORS.secondary },
+  levelCardCurrent: { borderColor: COLORS.primary, backgroundColor: COLORS.lavender + '15' },
+  levelCardLocked: { opacity: 0.5, backgroundColor: COLORS.bgDark },
+  levelHeader: { alignItems: 'center', marginRight: 16 },
+  levelNumber: { fontSize: 28, color: COLORS.text, width: 40, textAlign: 'center' },
+  levelInfo: { flex: 1 },
+  levelName: { fontSize: 20, color: COLORS.text },
+  levelSubtitle: { fontSize: 14, color: COLORS.textLight, marginTop: 2 },
+  levelTextLocked: { color: COLORS.textLight },
 });

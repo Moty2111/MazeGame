@@ -1,6 +1,7 @@
 node_modules/
 .expo/
 dist/
+android/
 *.jks
 *.keystore
 android/.gradle/

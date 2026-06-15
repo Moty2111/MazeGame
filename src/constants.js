@@ -27,11 +27,6 @@ export const LEVELS = [
   { id: 4, name: 'Сердце лабиринта', subtitle: 'Финал', rows: 11, cols: 11 },
 ];
 
-export const FONTS = {
-  regular: 'Caveat_400Regular',
-  bold: 'Caveat_700Bold',
-};
-
 export const CONTROL_MODES = [
   { id: 'swipe', label: 'Свайпы', icon: '👆' },
   { id: 'buttons', label: 'Кнопки', icon: '🔘' },
