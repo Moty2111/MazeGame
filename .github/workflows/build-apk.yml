@@ -1,0 +1,59 @@
+name: Сборка APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Установка зависимостей
+        run: npm install
+
+      - name: Генерация нативного Android проекта
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Генерация ключа подписи
+        run: |
+          keytool -genkey -v -keystore app.keystore -alias mazeKey -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=MazeGame, O=MazeGame, C=US"
+
+      - name: Подключение ключа в проект
+        run: |
+          echo 'android.defaultConfig.signingConfig signingConfigs.debug' >> android/app/build.gradle
+          mkdir -p android/app/keystore
+          cp app.keystore android/app/keystore/
+          cat > android/keystore.properties << EOF
+          storePassword=123456
+          keyPassword=123456
+          keyAlias=mazeKey
+          storeFile=keystore/app.keystore
+          EOF
+
+      - name: Сборка APK
+        run: cd android && ./gradlew assembleRelease
+
+      - name: Загрузка APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Лабиринт-для-Кати
+          path: android/app/build/outputs/apk/release/*.apk
