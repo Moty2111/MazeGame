@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import 'react-native-gesture-handler';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFonts, Caveat_400Regular, Caveat_700Bold } from '@expo-google-fonts/caveat';
 import { COLORS } from './src/constants';
@@ -10,8 +11,30 @@ import LevelSelect from './src/screens/LevelSelect';
 import Game from './src/screens/Game';
 import Finish from './src/screens/Finish';
 
-export default function App() {
-  const [fontsLoaded] = useFonts({
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorEmoji}>😿</Text>
+          <Text style={styles.errorText}>Что-то пошло не так...</Text>
+          <Text style={styles.errorSub}>Перезапусти приложение</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function AppContent() {
+  const [fontsLoaded, fontError] = useFonts({
     Caveat_400Regular,
     Caveat_700Bold,
   });
@@ -26,28 +49,14 @@ export default function App() {
   const [currentLevel, setCurrentLevel] = useState(null);
   const [levelResults, setLevelResults] = useState([]);
 
-  const navigate = useCallback((target) => setScreen(target), []);
-
-  const handlePlay = useCallback(() => {
-    setScreen('levelSelect');
-  }, []);
-
-  const handleSettings = useCallback(() => {
-    setScreen('settings');
-  }, []);
-
-  const handleAbout = useCallback(() => {
-    setScreen('about');
-  }, []);
+  const handlePlay = useCallback(() => setScreen('levelSelect'), []);
+  const handleSettings = useCallback(() => setScreen('settings'), []);
+  const handleAbout = useCallback(() => setScreen('about'), []);
 
   const handleBack = useCallback(() => {
-    if (screen === 'settings' || screen === 'about') {
-      setScreen('mainMenu');
-    } else if (screen === 'levelSelect') {
-      setScreen('mainMenu');
-    } else if (screen === 'game') {
-      setScreen('levelSelect');
-    }
+    if (screen === 'settings' || screen === 'about') setScreen('mainMenu');
+    else if (screen === 'levelSelect') setScreen('mainMenu');
+    else if (screen === 'game') setScreen('levelSelect');
   }, [screen]);
 
   const handleSelectLevel = useCallback((level) => {
@@ -61,19 +70,15 @@ export default function App() {
         ? completedLevels
         : [...completedLevels, levelId];
       setCompletedLevels(newCompleted);
-
-      const newResults = [...levelResults, { levelId, moves, time }];
-      setLevelResults(newResults);
-
+      setLevelResults((prev) => [...prev, { levelId, moves, time }]);
       if (levelId < LEVELS.length - 1) {
-        const nextLevel = LEVELS[levelId + 1];
-        setCurrentLevel(nextLevel);
+        setCurrentLevel(LEVELS[levelId + 1]);
         setScreen('game');
       } else {
         setScreen('finish');
       }
     },
-    [completedLevels, levelResults]
+    [completedLevels]
   );
 
   const handleRestart = useCallback(() => {
@@ -87,7 +92,7 @@ export default function App() {
     setSettings(newSettings);
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return (
       <View style={styles.loading}>
         <Text style={styles.loadingEmoji}>🐱</Text>
@@ -100,19 +105,10 @@ export default function App() {
   switch (screen) {
     case 'mainMenu':
       return <MainMenu onPlay={handlePlay} onSettings={handleSettings} onAbout={handleAbout} />;
-
     case 'settings':
-      return (
-        <Settings
-          settings={settings}
-          onUpdateSettings={handleUpdateSettings}
-          onBack={handleBack}
-        />
-      );
-
+      return <Settings settings={settings} onUpdateSettings={handleUpdateSettings} onBack={handleBack} />;
     case 'about':
       return <About onBack={handleBack} />;
-
     case 'levelSelect':
       return (
         <LevelSelect
@@ -122,23 +118,21 @@ export default function App() {
           currentLevel={currentLevel ? currentLevel.id : 0}
         />
       );
-
     case 'game':
-      return (
-        <Game
-          level={currentLevel || LEVELS[0]}
-          onComplete={handleLevelComplete}
-          onBack={handleBack}
-          settings={settings}
-        />
-      );
-
+      return <Game level={currentLevel || LEVELS[0]} onComplete={handleLevelComplete} onBack={handleBack} settings={settings} />;
     case 'finish':
       return <Finish onRestart={handleRestart} levelResults={levelResults} />;
-
     default:
       return <MainMenu onPlay={handlePlay} onSettings={handleSettings} onAbout={handleAbout} />;
   }
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -157,5 +151,28 @@ const styles = StyleSheet.create({
     fontFamily: 'Caveat_400Regular',
     color: COLORS.textLight,
     marginTop: 12,
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  errorEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 22,
+    fontFamily: 'Caveat_700Bold',
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  errorSub: {
+    fontSize: 16,
+    fontFamily: 'Caveat_400Regular',
+    color: COLORS.textLight,
+    marginTop: 8,
   },
 });
