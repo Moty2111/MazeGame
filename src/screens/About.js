@@ -25,7 +25,7 @@ export default function About({ onBack }) {
             награда 🎁
           </Text>
         </View>
-        <Text style={styles.devText}>Разработчик: [твоё имя]</Text>
+        <Text style={styles.devText}>Разработчик: Матвей</Text>
         <Text style={styles.yearText}>© 2026</Text>
       </View>
     </View>

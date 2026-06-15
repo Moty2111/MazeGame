@@ -8,6 +8,7 @@ import {
   Animated,
   useWindowDimensions,
 } from 'react-native';
+import { Audio } from 'expo-av';
 import { DeviceMotion } from 'expo-sensors';
 import { COLORS } from '../constants';
 import { generateMaze } from '../mazeGenerator';
@@ -53,6 +54,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
   const posRef = useRef(playerPos);
   const mazeRef = useRef(maze);
   const winRef = useRef(isWin);
+  const soundRef = useRef(null);
 
   posRef.current = playerPos;
   mazeRef.current = maze;
@@ -116,6 +118,33 @@ export default function Game({ level, onComplete, onBack, settings }) {
     });
     return () => { if (subRef.current) { subRef.current.remove(); subRef.current = null; } };
   }, [settings.controlMode, tiltAvailable, doMove]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAudio() {
+      try {
+        if (soundRef.current) {
+          await soundRef.current.unloadAsync().catch(() => {});
+          soundRef.current = null;
+        }
+        const { sound } = await Audio.Sound.createAsync(
+          require('../../assets/audio/bgmusic.mp3'),
+          { isLooping: true, volume: settings.volume }
+        );
+        if (cancelled) { await sound.unloadAsync().catch(() => {}); return; }
+        soundRef.current = sound;
+        if (settings.soundEnabled) await sound.playAsync();
+      } catch (_) {}
+    }
+    loadAudio();
+    return () => {
+      cancelled = true;
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => {});
+        soundRef.current = null;
+      }
+    };
+  }, [level, settings.soundEnabled, settings.volume]);
 
   const handleMove = useCallback((dir) => doMove(dir), [doMove]);
   const handleNext = () => onComplete(level.id, moves, time);

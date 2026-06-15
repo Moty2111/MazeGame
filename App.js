@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
 import { COLORS } from './src/constants';
 import { LEVELS } from './src/constants';
 import MainMenu from './src/screens/MainMenu';
@@ -12,13 +13,18 @@ import Finish from './src/screens/Finish';
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
   static getDerivedStateFromError() {
     return { hasError: true };
   }
+  componentDidCatch(error) {
+    console.error('ErrorBoundary:', error);
+    this.setState({ error });
+  }
   render() {
     if (this.state.hasError) {
+      console.log('ERROR:', this.state.error?.toString());
       return (
         <View style={styles.errorContainer}>
           <Text style={{ fontSize: 64 }}>😿</Text>
@@ -41,6 +47,11 @@ function AppContent() {
   const [completedLevels, setCompletedLevels] = useState([]);
   const [currentLevel, setCurrentLevel] = useState(null);
   const [levelResults, setLevelResults] = useState([]);
+
+  useEffect(() => {
+    try { NavigationBar.setVisibilityAsync('hidden'); } catch (_) {}
+    try { NavigationBar.setBehaviorAsync('overlay-swipe'); } catch (_) {}
+  }, []);
 
   const navigate = useCallback((target) => setScreen(target), []);
   const handlePlay = useCallback(() => navigate('levelSelect'), [navigate]);

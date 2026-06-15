@@ -11,3 +11,5 @@ android/build/
 *.aab
 .DS_Store
 *.log
+*.tmp
+FACE-*.mp3
