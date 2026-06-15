@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "owner": "moty2111",
+    "name": "Лабиринт для Кати",
+    "slug": "MazeGame",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FFF8F0",
+    "splash": {
+      "backgroundColor": "#FFF8F0",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.moty2111.mazegame",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSMotionUsageDescription": "Используется для управления котёнком наклоном телефона"
+      }
+    },
+    "android": {
+      "package": "com.moty2111.mazegame",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF8F0",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7b3f0249-094b-462b-bdd1-a74384bd6afa"
+      }
+    }
+  }
+}
