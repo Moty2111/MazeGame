@@ -7,14 +7,16 @@ import {
   StatusBar,
   Animated,
   useWindowDimensions,
+  Vibration,
 } from 'react-native';
 import { DeviceMotion } from 'expo-sensors';
 import { COLORS } from '../constants';
 import { generateMaze } from '../mazeGenerator';
 import Maze from '../components/Maze';
+import { initAudio, loadMusic, playMusic, pauseMusic, setMusicVolume, unloadMusic } from '../sounds';
 
-const TILT_THRESHOLD = 0.5;
-const TILT_COOLDOWN = 200;
+const TILT_THRESHOLD = 0.3;
+const TILT_COOLDOWN = 180;
 
 function tryMove(playerPos, direction, grid) {
   const { row, col } = playerPos;
@@ -45,6 +47,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
   const [isWin, setIsWin] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
   const [tiltAvailable, setTiltAvailable] = useState(false);
+  const [musicReady, setMusicReady] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const starAnim = useRef(new Animated.Value(0)).current;
@@ -53,10 +56,32 @@ export default function Game({ level, onComplete, onBack, settings }) {
   const posRef = useRef(playerPos);
   const mazeRef = useRef(maze);
   const winRef = useRef(isWin);
+  const settingsRef = useRef(settings);
 
   posRef.current = playerPos;
   mazeRef.current = maze;
   winRef.current = isWin;
+  settingsRef.current = settings;
+
+  useEffect(() => {
+    initAudio().then(() => setMusicReady(true));
+    loadMusic().then(() => {
+      if (settingsRef.current.soundEnabled) {
+        playMusic(settingsRef.current.volume);
+      }
+    });
+    return () => { unloadMusic(); };
+  }, []);
+
+  useEffect(() => {
+    if (musicReady) {
+      if (settings.soundEnabled) {
+        playMusic(settings.volume);
+      } else {
+        pauseMusic();
+      }
+    }
+  }, [settings.soundEnabled, settings.volume, musicReady]);
 
   useEffect(() => {
     const g = generateMaze(level.rows, level.cols);
@@ -81,7 +106,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
     DeviceMotion.isAvailableAsync()
       .then((avail) => {
         setTiltAvailable(avail);
-        if (avail) DeviceMotion.setUpdateInterval(100);
+        if (avail) DeviceMotion.setUpdateInterval(80);
       })
       .catch(() => setTiltAvailable(false));
   }, []);
@@ -92,8 +117,14 @@ export default function Game({ level, onComplete, onBack, settings }) {
     if (newPos === posRef.current) return;
     setPlayerPos(newPos);
     setMoves((m) => m + 1);
+    if (settingsRef.current.vibrationEnabled) {
+      Vibration.vibrate(10);
+    }
     if (newPos.row === level.rows - 1 && newPos.col === level.cols - 1) {
       setIsWin(true);
+      if (settingsRef.current.vibrationEnabled) {
+        Vibration.vibrate([0, 50, 30, 50], false);
+      }
       Animated.sequence([
         Animated.timing(starAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
         Animated.delay(800),
@@ -151,6 +182,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
         {tiltAvailable && settings.controlMode === 'tilt' && (
           <Text style={styles.tiltBadge}>📱 Наклон</Text>
         )}
+        {settings.soundEnabled && <Text style={styles.musicBadge}>🎵</Text>}
       </View>
       <Animated.View style={[styles.mazeContainer, { opacity: fadeAnim }]}>
         {maze && <Maze maze={maze} playerPos={playerPos} level={level} onMove={handleMove} cellSize={cellSize} />}
@@ -223,6 +255,7 @@ const styles = StyleSheet.create({
   movesRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, marginBottom: 4, gap: 8 },
   movesText: { fontSize: 14, color: COLORS.textLight },
   tiltBadge: { fontSize: 12, color: COLORS.primaryDark, backgroundColor: COLORS.lavenderLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  musicBadge: { fontSize: 12, paddingHorizontal: 4 },
   mazeContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, position: 'relative' },
   winOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 20 },
   winText: { fontSize: 24, color: COLORS.primaryDark, marginTop: 8, fontWeight: '700' },

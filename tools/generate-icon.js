@@ -1,234 +1,283 @@
 const sharp = require('sharp');
 const path = require('path');
 
-const SIZE = 1024;
-const LAVENDER = [196, 132, 252];
-const DARK_PURPLE = [124, 58, 237];
-const MID_PURPLE = [167, 139, 250];
-const LIGHT_LAVENDER = [237, 233, 254];
-const WHITE = [255, 255, 255];
-const PINK = [249, 168, 212];
-const GOLD = [251, 191, 36];
+const S = 1024;
+const HS = S / 2;
 
-function setPixel(pixels, x, y, r, g, b, a = 255) {
-  if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) return;
-  const i = (y * SIZE + x) * 4;
-  pixels[i] = r;
-  pixels[i + 1] = g;
-  pixels[i + 2] = b;
-  pixels[i + 3] = a;
+function put(pix, x, y, r, g, b, a = 255) {
+  if (x < 0 || x >= S || y < 0 || y >= S) return;
+  const i = (y * S + x) * 4;
+  pix[i] = r; pix[i+1] = g; pix[i+2] = b; pix[i+3] = a;
 }
 
-function getPixel(pixels, x, y) {
-  if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) return [0, 0, 0, 0];
-  const i = (y * SIZE + x) * 4;
-  return [pixels[i], pixels[i + 1], pixels[i + 2], pixels[i + 3]];
-}
-
-function drawCircle(pixels, cx, cy, radius, r, g, b, a = 255, filled = true) {
-  for (let y = cy - radius; y <= cy + radius; y++) {
-    for (let x = cx - radius; x <= cx + radius; x++) {
-      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-      if (filled ? dist <= radius : Math.abs(dist - radius) <= 1.5) {
-        setPixel(pixels, x, y, r, g, b, a);
-      }
+function circle(pix, cx, cy, rad, r, g, b, a = 255, fill = true) {
+  const r2 = rad * rad;
+  for (let y = cy - rad; y <= cy + rad; y++) {
+    for (let x = cx - rad; x <= cx + rad; x++) {
+      const d2 = (x-cx)*(x-cx) + (y-cy)*(y-cy);
+      if (fill ? d2 <= r2 : Math.abs(Math.sqrt(d2) - rad) <= 1.5) put(pix, x, y, r, g, b, a);
     }
   }
 }
 
-function drawEllipse(pixels, cx, cy, rx, ry, r, g, b, a = 255, filled = true) {
+function ellipse(pix, cx, cy, rx, ry, r, g, b, a = 255, fill = true, rot = 0) {
+  const cos = Math.cos(rot), sin = Math.sin(rot);
   for (let y = cy - ry; y <= cy + ry; y++) {
     for (let x = cx - rx; x <= cx + rx; x++) {
-      const dist = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2;
-      if (filled ? dist <= 1 : Math.abs(dist - 1) <= 0.05) {
-        setPixel(pixels, x, y, r, g, b, a);
-      }
+      const dx = x-cx, dy = y-cy;
+      const rx2 = rx*rx, ry2 = ry*ry;
+      const ux = dx*cos + dy*sin, uy = -dx*sin + dy*cos;
+      const d2 = (ux*ux)/(rx2) + (uy*uy)/(ry2);
+      if (fill ? d2 <= 1 : Math.abs(d2 - 1) <= 0.05) put(pix, x, y, r, g, b, a);
     }
   }
 }
 
-function drawTriangle(pixels, x1, y1, x2, y2, x3, y3, r, g, b, a = 255) {
-  const minX = Math.max(0, Math.min(x1, x2, x3));
-  const maxX = Math.min(SIZE - 1, Math.max(x1, x2, x3));
-  const minY = Math.max(0, Math.min(y1, y2, y3));
-  const maxY = Math.min(SIZE - 1, Math.max(y1, y2, y3));
-  
-  function edge(x, y, x1, y1, x2, y2) {
-    return (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1);
-  }
-  
-  for (let y = minY; y <= maxY; y++) {
-    for (let x = minX; x <= maxX; x++) {
+function tri(pix, x1, y1, x2, y2, x3, y3, r, g, b, a = 255) {
+  const mnX = Math.max(0, Math.min(x1, x2, x3));
+  const mxX = Math.min(S-1, Math.max(x1, x2, x3));
+  const mnY = Math.max(0, Math.min(y1, y2, y3));
+  const mxY = Math.min(S-1, Math.max(y1, y2, y3));
+  function edge(x, y, ax, ay, bx, by) { return (bx-ax)*(y-ay) - (by-ay)*(x-ax); }
+  for (let y = mnY; y <= mxY; y++) {
+    for (let x = mnX; x <= mxX; x++) {
       const w1 = edge(x, y, x2, y2, x3, y3);
       const w2 = edge(x, y, x3, y3, x1, y1);
       const w3 = edge(x, y, x1, y1, x2, y2);
-      const hasNeg = (w1 < 0) || (w2 < 0) || (w3 < 0);
-      const hasPos = (w1 > 0) || (w2 > 0) || (w3 > 0);
-      if (!(hasNeg && hasPos)) {
-        setPixel(pixels, x, y, r, g, b, a);
+      const neg = w1 < 0 || w2 < 0 || w3 < 0;
+      const pos = w1 > 0 || w2 > 0 || w3 > 0;
+      if (!(neg && pos)) put(pix, x, y, r, g, b, a);
+    }
+  }
+}
+
+function gradient(pix, x1, y1, x2, y2, r1, g1, b1, r2, g2, b2) {
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const dx = x2 - x1, dy = y2 - y1;
+      const len2 = dx*dx + dy*dy;
+      let t = len2 > 0 ? ((x - x1)*dx + (y - y1)*dy) / len2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      put(pix, x, y,
+        Math.round(r1 + (r2 - r1) * t),
+        Math.round(g1 + (g2 - g1) * t),
+        Math.round(b1 + (b2 - b1) * t), 255);
+    }
+  }
+}
+
+function glow(pix, cx, cy, rad, r, g, b, maxA = 80) {
+  for (let y = cy - rad; y <= cy + rad; y++) {
+    for (let x = cx - rad; x <= cx + rad; x++) {
+      const d = Math.sqrt((x-cx)*(x-cx) + (y-cy)*(y-cy));
+      if (d <= rad) {
+        const a = Math.round(maxA * (1 - d/rad));
+        if (a > 0) {
+          const i = (y * S + x) * 4;
+          const alpha = a / 255;
+          pix[i] = Math.round(pix[i] * (1 - alpha) + r * alpha);
+          pix[i+1] = Math.round(pix[i+1] * (1 - alpha) + g * alpha);
+          pix[i+2] = Math.round(pix[i+2] * (1 - alpha) + b * alpha);
+        }
       }
     }
   }
 }
 
-async function generateIcon() {
-  const pixels = Buffer.alloc(SIZE * SIZE * 4);
-  const cx = SIZE / 2;
-  const cy = SIZE / 2;
+async function main() {
+  const pix = Buffer.alloc(S * S * 4);
 
-  // Lavender gradient background
-  for (let y = 0; y < SIZE; y++) {
-    for (let x = 0; x < SIZE; x++) {
-      const i = (y * SIZE + x) * 4;
-      const dx = (x - cx) / (SIZE * 0.5);
-      const dy = (y - cy) / (SIZE * 0.5);
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const t = Math.min(dist, 1);
-      pixels[i] = Math.round(LAVENDER[0] + (LIGHT_LAVENDER[0] - LAVENDER[0]) * t * 0.5);
-      pixels[i + 1] = Math.round(LAVENDER[1] + (LIGHT_LAVENDER[1] - LAVENDER[1]) * t * 0.5);
-      pixels[i + 2] = Math.round(LAVENDER[2] + (LIGHT_LAVENDER[2] - LAVENDER[2]) * t * 0.5);
-      pixels[i + 3] = 255;
+  // radial gradient background
+  const c1 = [245, 222, 254], c2 = [255, 248, 240];
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const dx = (x - HS) / HS, dy = (y - HS) / HS;
+      const t = Math.min(1, Math.sqrt(dx*dx + dy*dy));
+      put(pix, x, y,
+        Math.round(c1[0] + (c2[0] - c1[0]) * t),
+        Math.round(c1[1] + (c2[1] - c1[1]) * t),
+        Math.round(c1[2] + (c2[2] - c1[2]) * t), 255);
     }
   }
 
-  // Cat ears (triangles)
-  const earSize = SIZE * 0.32;
-  const earY = cy - SIZE * 0.12;
-  // Left ear
-  drawTriangle(pixels,
-    cx - SIZE * 0.32, earY + earSize * 0.1,
-    cx - SIZE * 0.08, earY + earSize * 0.1,
-    cx - SIZE * 0.22, earY - earSize * 0.9,
-    DARK_PURPLE[0], DARK_PURPLE[1], DARK_PURPLE[2]
-  );
-  // Right ear
-  drawTriangle(pixels,
-    cx + SIZE * 0.08, earY + earSize * 0.1,
-    cx + SIZE * 0.32, earY + earSize * 0.1,
-    cx + SIZE * 0.22, earY - earSize * 0.9,
-    DARK_PURPLE[0], DARK_PURPLE[1], DARK_PURPLE[2]
-  );
-  // Inner ear left (pink)
-  drawTriangle(pixels,
-    cx - SIZE * 0.28, earY + earSize * 0.05,
-    cx - SIZE * 0.12, earY + earSize * 0.05,
-    cx - SIZE * 0.21, earY - earSize * 0.5,
-    PINK[0], PINK[1], PINK[2]
-  );
-  // Inner ear right (pink)
-  drawTriangle(pixels,
-    cx + SIZE * 0.12, earY + earSize * 0.05,
-    cx + SIZE * 0.28, earY + earSize * 0.05,
-    cx + SIZE * 0.21, earY - earSize * 0.5,
-    PINK[0], PINK[1], PINK[2]
-  );
-
-  // Cat face (oval)
-  drawEllipse(pixels, cx, cy + SIZE * 0.02, SIZE * 0.32, SIZE * 0.28, LIGHT_LAVENDER[0], LIGHT_LAVENDER[1], LIGHT_LAVENDER[2]);
-
-  // Eyes
-  const eyeY = cy + SIZE * 0.02;
-  const eyeX = SIZE * 0.11;
-  const eyeR = SIZE * 0.035;
-  // Left eye white
-  drawEllipse(pixels, cx - eyeX, eyeY, eyeR, eyeR * 1.2, WHITE[0], WHITE[1], WHITE[2]);
-  // Right eye white
-  drawEllipse(pixels, cx + eyeX, eyeY, eyeR, eyeR * 1.2, WHITE[0], WHITE[1], WHITE[2]);
-  // Left pupil
-  drawCircle(pixels, cx - eyeX, eyeY, eyeR * 0.5, GOLD[0], GOLD[1], GOLD[2]);
-  // Right pupil
-  drawCircle(pixels, cx + eyeX, eyeY, eyeR * 0.5, GOLD[0], GOLD[1], GOLD[2]);
-  // Left pupil center
-  drawCircle(pixels, cx - eyeX, eyeY, eyeR * 0.25, DARK_PURPLE[0], DARK_PURPLE[1], DARK_PURPLE[2]);
-  // Right pupil center
-  drawCircle(pixels, cx + eyeX, eyeY, eyeR * 0.25, DARK_PURPLE[0], DARK_PURPLE[1], DARK_PURPLE[2]);
-  // Eye shine
-  const shineOff = eyeR * 0.3;
-  drawCircle(pixels, cx - eyeX + shineOff, eyeY - shineOff, eyeR * 0.2, WHITE[0], WHITE[1], WHITE[2]);
-  drawCircle(pixels, cx + eyeX + shineOff, eyeY - shineOff, eyeR * 0.2, WHITE[0], WHITE[1], WHITE[2]);
-
-  // Nose
-  drawTriangle(pixels,
-    cx - SIZE * 0.02, cy + SIZE * 0.08,
-    cx + SIZE * 0.02, cy + SIZE * 0.08,
-    cx, cy + SIZE * 0.12,
-    PINK[0], PINK[1], PINK[2]
-  );
-
-  // Mouth
-  const mouthY = cy + SIZE * 0.13;
-  const mouthR = SIZE * 0.025;
-  // Left mouth curve
-  drawCircle(pixels, cx - mouthR * 1.2, mouthY, mouthR, DARK_PURPLE[0], DARK_PURPLE[1], DARK_PURPLE[2], 150);
-  // Right mouth curve
-  drawCircle(pixels, cx + mouthR * 1.2, mouthY, mouthR, DARK_PURPLE[0], DARK_PURPLE[1], DARK_PURPLE[2], 150);
-
-  // Whiskers
-  const whiskerY = cy + SIZE * 0.08;
-  for (let side = -1; side <= 1; side += 2) {
-    for (let i = -1; i <= 1; i++) {
-      for (let j = 0; j < 3; j++) {
-        const wx = cx + side * (SIZE * 0.14 + j * SIZE * 0.04);
-        const wy = whiskerY + i * SIZE * 0.02;
-        const size = SIZE * 0.005;
-        drawCircle(pixels, wx + (i === 0 ? side * SIZE * 0.02 : 0), wy, size, MID_PURPLE[0], MID_PURPLE[1], MID_PURPLE[2], 180);
+  // maze pattern background (subtle)
+  const mazeColor = [196, 132, 252, 15];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const x = c * (S / 8), y = r * (S / 8);
+      const sz = S / 8;
+      // left wall
+      if (Math.random() > 0.4) {
+        for (let ly = 0; ly < sz; ly++) put(pix, x, y + ly, ...mazeColor);
+      }
+      // top wall
+      if (Math.random() > 0.4) {
+        for (let lx = 0; lx < sz; lx++) put(pix, x + lx, y, ...mazeColor);
       }
     }
   }
 
-  // Cheek blush
-  drawCircle(pixels, cx - SIZE * 0.2, cy + SIZE * 0.08, SIZE * 0.04, PINK[0], PINK[1], PINK[2], 80);
-  drawCircle(pixels, cx + SIZE * 0.2, cy + SIZE * 0.08, SIZE * 0.04, PINK[0], PINK[1], PINK[2], 80);
+  // circular glow behind cat
+  glow(pix, HS, HS - 20, 340, 196, 132, 252, 60);
 
-  // Rounded corners (transparent)
-  const cornerRadius = SIZE * 0.18;
-  for (let y = 0; y < SIZE; y++) {
-    for (let x = 0; x < SIZE; x++) {
+  // cat ears (outer - dark purple)
+  const earOff = 190, earH = 280, earW = 160;
+  tri(pix, HS - earOff, HS - 40, HS - earOff + earW, HS - 40, HS - earOff + earW/2, HS - earH, 124, 58, 237);
+  tri(pix, HS + earOff - earW, HS - 40, HS + earOff, HS - 40, HS + earOff - earW/2, HS - earH, 124, 58, 237);
+
+  // inner ear (pink)
+  const ieW = 90, ieH = 160;
+  tri(pix, HS - earOff + 35, HS - 35, HS - earOff + 35 + ieW, HS - 35, HS - earOff + earW/2, HS - earH + 60, 249, 168, 212);
+  tri(pix, HS + earOff - 35 - ieW, HS - 35, HS + earOff - 35, HS - 35, HS + earOff - earW/2, HS - earH + 60, 249, 168, 212);
+
+  // head (main circle)
+  circle(pix, HS, HS + 10, 310, 255, 255, 255);
+  circle(pix, HS, HS + 10, 308, 237, 233, 254, 255);
+
+  // cheeks blush
+  circle(pix, HS - 180, HS + 90, 50, 249, 168, 212, 60);
+  circle(pix, HS + 180, HS + 90, 50, 249, 168, 212, 60);
+
+  // eye whites
+  const eyeY = HS - 10, eyeOff = 130, eyeR = 52, eyeRy = 58;
+  ellipse(pix, HS - eyeOff, eyeY, eyeR, eyeRy, 255, 255, 255);
+  ellipse(pix, HS + eyeOff, eyeY, eyeR, eyeRy, 255, 255, 255);
+
+  // eye outlines
+  ellipse(pix, HS - eyeOff, eyeY, eyeR, eyeRy, 124, 58, 237, 200, false);
+  ellipse(pix, HS + eyeOff, eyeY, eyeR, eyeRy, 124, 58, 237, 200, false);
+
+  // iris (golden/green)
+  const irR = 28;
+  circle(pix, HS - eyeOff, eyeY, irR, 251, 191, 36);
+  circle(pix, HS + eyeOff, eyeY, irR, 251, 191, 36);
+
+  // iris gradient (top darker)
+  for (let dy = -irR; dy <= 0; dy++) {
+    for (let dx = -irR; dx <= irR; dx++) {
+      const d2 = dx*dx + dy*dy;
+      if (d2 <= irR*irR) {
+        const t = 1 - (dy + irR) / irR;
+        const darken = Math.round(t * 40);
+        for (const off of [-eyeOff, eyeOff]) {
+          const i = ((eyeY + dy) * S + (HS + off + dx)) * 4;
+          if (i >= 0 && i < pix.length - 3) {
+            pix[i] = Math.max(0, pix[i] - darken);
+            pix[i+1] = Math.max(0, pix[i+1] - darken);
+            pix[i+2] = Math.max(0, pix[i+2] - darken);
+          }
+        }
+      }
+    }
+  }
+
+  // pupil
+  const pupR = 16;
+  circle(pix, HS - eyeOff, eyeY, pupR, 30, 30, 50);
+  circle(pix, HS + eyeOff, eyeY, pupR, 30, 30, 50);
+
+  // eye shine
+  const shX = 15, shY = -18, shR = 14;
+  circle(pix, HS - eyeOff + shX, eyeY + shY, shR, 255, 255, 255, 220);
+  circle(pix, HS + eyeOff + shX, eyeY + shY, shR, 255, 255, 255, 220);
+  circle(pix, HS - eyeOff - shX/2, eyeY + shY + 8, 6, 255, 255, 255, 160);
+  circle(pix, HS + eyeOff - shX/2, eyeY + shY + 8, 6, 255, 255, 255, 160);
+
+  // nose
+  const nX = HS, nY = HS + 70, nS = 24;
+  tri(pix, nX - nS, nY, nX + nS, nY, nX, nY + nS, 249, 168, 212);
+
+  // nose highlight
+  tri(pix, nX - 8, nY, nX + 8, nY, nX, nY + 10, 255, 200, 230);
+
+  // mouth
+  const mY = nY + nS + 8, mR = 22;
+  for (const side of [-1, 1]) {
+    const mx = nX + side * 28;
+    // mouth arc
+    for (let a = 0; a <= Math.PI * 0.8; a += 0.05) {
+      const ex = mx + Math.cos(a) * mR * side;
+      const ey = mY - Math.sin(a) * mR * 0.7;
+      put(pix, Math.round(ex), Math.round(ey), 80, 60, 100, 180);
+    }
+  }
+
+  // whiskers
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 3; i++) {
+      const wy = HS + 50 + i * 22;
+      const wx = HS + side * 200;
+      for (let j = 0; j < 30; j++) {
+        const px = Math.round(wx + side * j * 3);
+        const py = Math.round(wy + Math.sin(j * 0.4) * 6);
+        put(pix, px, py, 167, 139, 250, 180 - j * 4);
+      }
+    }
+  }
+
+  // top highlight on head
+  ellipse(pix, HS, HS - 130, 180, 80, 255, 255, 255, 60);
+
+  // rounded corners mask
+  const cr = 180;
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
       const inCorner =
-        (x < cornerRadius && y < cornerRadius && Math.sqrt((cornerRadius - x) ** 2 + (cornerRadius - y) ** 2) > cornerRadius) ||
-        (x > SIZE - cornerRadius && y < cornerRadius && Math.sqrt((x - (SIZE - cornerRadius)) ** 2 + (cornerRadius - y) ** 2) > cornerRadius) ||
-        (x < cornerRadius && y > SIZE - cornerRadius && Math.sqrt((cornerRadius - x) ** 2 + (y - (SIZE - cornerRadius)) ** 2) > cornerRadius) ||
-        (x > SIZE - cornerRadius && y > SIZE - cornerRadius && Math.sqrt((x - (SIZE - cornerRadius)) ** 2 + (y - (SIZE - cornerRadius)) ** 2) > cornerRadius);
-      if (inCorner) setPixel(pixels, x, y, 0, 0, 0, 0);
+        (x < cr && y < cr && Math.sqrt((cr - x)**2 + (cr - y)**2) > cr) ||
+        (x > S - cr && y < cr && Math.sqrt((x - (S - cr))**2 + (cr - y)**2) > cr) ||
+        (x < cr && y > S - cr && Math.sqrt((cr - x)**2 + (y - (S - cr))**2) > cr) ||
+        (x > S - cr && y > S - cr && Math.sqrt((x - (S - cr))**2 + (y - (S - cr))**2) > cr);
+      if (inCorner) put(pix, x, y, 0, 0, 0, 0);
     }
   }
 
   const outDir = path.join(__dirname, '..', 'assets');
-  await sharp(pixels, { raw: { width: SIZE, height: SIZE, channels: 4 } })
-    .png()
-    .toFile(path.join(outDir, 'icon.png'));
 
-  await sharp(pixels, { raw: { width: SIZE, height: SIZE, channels: 4 } })
-    .resize(48)
-    .png()
-    .toFile(path.join(outDir, 'favicon.png'));
+  await sharp(pix, { raw: { width: S, height: S, channels: 4 } })
+    .png().toFile(path.join(outDir, 'icon.png'));
 
-  await sharp(pixels, { raw: { width: SIZE, height: SIZE, channels: 4 } })
-    .resize(1024)
-    .png()
-    .toFile(path.join(outDir, 'splash-icon.png'));
+  await sharp(pix, { raw: { width: S, height: S, channels: 4 } })
+    .resize(48).png().toFile(path.join(outDir, 'favicon.png'));
 
-  await sharp(pixels, { raw: { width: SIZE, height: SIZE, channels: 4 } })
-    .resize(1024)
-    .png()
-    .toFile(path.join(outDir, 'android-icon-foreground.png'));
+  await sharp(pix, { raw: { width: S, height: S, channels: 4 } })
+    .resize(1024).png().toFile(path.join(outDir, 'splash-icon.png'));
 
-  const bgPixels = Buffer.alloc(SIZE * SIZE * 4);
-  for (let y = 0; y < SIZE; y++) {
-    for (let x = 0; x < SIZE; x++) {
-      const i = (y * SIZE + x) * 4;
-      bgPixels[i] = LAVENDER[0];
-      bgPixels[i + 1] = LAVENDER[1];
-      bgPixels[i + 2] = LAVENDER[2];
-      bgPixels[i + 3] = 255;
+  // adaptive icon foreground (no rounded corners mask)
+  const fgPix = Buffer.alloc(S * S * 4);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const i = (y * S + x) * 4;
+      fgPix[i] = pix[i]; fgPix[i+1] = pix[i+1]; fgPix[i+2] = pix[i+2]; fgPix[i+3] = pix[i+3];
     }
   }
-  await sharp(bgPixels, { raw: { width: SIZE, height: SIZE, channels: 4 } })
-    .resize(1024)
-    .png()
-    .toFile(path.join(outDir, 'android-icon-background.png'));
+  await sharp(fgPix, { raw: { width: S, height: S, channels: 4 } })
+    .resize(1024).png().toFile(path.join(outDir, 'android-icon-foreground.png'));
+
+  // adaptive icon background
+  const bgPix = Buffer.alloc(S * S * 4);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const i = (y * S + x) * 4;
+      bgPix[i] = 237; bgPix[i+1] = 233; bgPix[i+2] = 254; bgPix[i+3] = 255;
+    }
+  }
+  await sharp(bgPix, { raw: { width: S, height: S, channels: 4 } })
+    .resize(1024).png().toFile(path.join(outDir, 'android-icon-background.png'));
+
+  // monochrome icon (silhouette for theme variants)
+  const monoPix = Buffer.alloc(S * S * 4);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const i = (y * S + x) * 4;
+      const avg = Math.round(pix[i] * 0.3 + pix[i+1] * 0.59 + pix[i+2] * 0.11);
+      monoPix[i] = avg; monoPix[i+1] = avg; monoPix[i+2] = avg;
+      monoPix[i+3] = pix[i+3];
+    }
+  }
+  await sharp(monoPix, { raw: { width: S, height: S, channels: 4 } })
+    .resize(1024).png().toFile(path.join(outDir, 'android-icon-monochrome.png'));
 
   console.log('Icons generated successfully!');
 }
 
-generateIcon().catch(console.error);
+main().catch(console.error);
