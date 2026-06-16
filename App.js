@@ -37,8 +37,6 @@ class ErrorBoundary extends React.Component {
 function AppContent() {
   const [screen, setScreen] = useState('mainMenu');
   const [settings, setSettings] = useState({
-    soundEnabled: true,
-    volume: 0.6,
     controlMode: 'swipe',
     vibrationEnabled: true,
   });
