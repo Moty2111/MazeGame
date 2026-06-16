@@ -85,7 +85,7 @@ export default function MainMenu({ onPlay, onSettings, onAbout }) {
           </TouchableOpacity>
         </View>
       </Animated.View>
-      <Text style={styles.versionText}>v1.0</Text>
+      <Text style={styles.versionText}>v1.1</Text>
     </View>
   );
 }

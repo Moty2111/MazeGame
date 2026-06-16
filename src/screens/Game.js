@@ -8,14 +8,17 @@ import {
   Animated,
   useWindowDimensions,
 } from 'react-native';
-import { Audio } from 'expo-av';
-import { DeviceMotion } from 'expo-sensors';
 import { COLORS } from '../constants';
 import { generateMaze } from '../mazeGenerator';
 import Maze from '../components/Maze';
 
 const TILT_THRESHOLD = 0.5;
 const TILT_COOLDOWN = 200;
+
+let Audio = null;
+let DeviceMotion = null;
+try { Audio = require('expo-av').Audio; } catch (_) {}
+try { DeviceMotion = require('expo-sensors').DeviceMotion; } catch (_) {}
 
 function tryMove(playerPos, direction, grid) {
   const { row, col } = playerPos;
@@ -80,6 +83,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
   }, [isWin]);
 
   useEffect(() => {
+    if (!DeviceMotion) return;
     DeviceMotion.isAvailableAsync()
       .then((avail) => {
         setTiltAvailable(avail);
@@ -91,6 +95,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
   useEffect(() => {
     let cancelled = false;
     async function loadAudio() {
+      if (!Audio) return;
       try {
         if (soundRef.current) {
           await soundRef.current.unloadAsync().catch(() => {});
@@ -131,6 +136,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
   }, [level, starAnim]);
 
   useEffect(() => {
+    if (!DeviceMotion) return;
     if (settings.controlMode !== 'tilt' || !tiltAvailable) {
       if (subRef.current) { subRef.current.remove(); subRef.current = null; }
       return;
@@ -242,57 +248,30 @@ export default function Game({ level, onComplete, onBack, settings }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, paddingTop: 50 },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 4 },
-  backBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
-    elevation: 2, marginRight: 10,
-  },
+  backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', elevation: 2, marginRight: 10 },
   backBtnText: { fontSize: 22, color: COLORS.primaryDark, fontWeight: '700' },
   topInfo: { flex: 1 },
   levelTitle: { fontSize: 20, color: COLORS.text, fontWeight: '700' },
   levelSub: { fontSize: 13, color: COLORS.textLight },
-  timerBox: {
-    backgroundColor: COLORS.white, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, elevation: 2,
-  },
+  timerBox: { backgroundColor: COLORS.white, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, elevation: 2 },
   timerText: { fontSize: 18, color: COLORS.primaryDark, fontWeight: '700' },
   movesRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, marginBottom: 4, gap: 8 },
   movesText: { fontSize: 14, color: COLORS.textLight },
   tiltBadge: { fontSize: 12, color: COLORS.primaryDark, backgroundColor: COLORS.lavenderLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   mazeContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, position: 'relative' },
-  winOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 20,
-  },
+  winOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 20 },
   winText: { fontSize: 24, color: COLORS.primaryDark, marginTop: 8, fontWeight: '700' },
-  completePanel: {
-    paddingHorizontal: 24, paddingTop: 8, paddingBottom: 20, alignItems: 'center',
-    backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 12,
-  },
+  completePanel: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 20, alignItems: 'center', backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 12 },
   completeTitle: { fontSize: 22, color: COLORS.text, marginBottom: 4, fontWeight: '700' },
   completeStats: { fontSize: 15, color: COLORS.textLight, marginBottom: 12 },
-  nextBtn: {
-    backgroundColor: COLORS.primaryDark, paddingVertical: 14, paddingHorizontal: 44,
-    borderRadius: 30, elevation: 4,
-    shadowColor: COLORS.primaryDark, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8,
-  },
+  nextBtn: { backgroundColor: COLORS.primaryDark, paddingVertical: 14, paddingHorizontal: 44, borderRadius: 30, elevation: 4, shadowColor: COLORS.primaryDark, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8 },
   nextBtnText: { fontSize: 20, color: COLORS.white, fontWeight: '600' },
   controlsContainer: { paddingBottom: 16, paddingHorizontal: 24 },
   dpad: { alignItems: 'center', marginBottom: 6 },
   dpadRow: { flexDirection: 'row', gap: 4 },
-  dpadBtn: {
-    width: 56, height: 56, borderRadius: 16,
-    backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
-    elevation: 3, borderWidth: 1.5, borderColor: COLORS.lavenderLight,
-    shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6,
-  },
+  dpadBtn: { width: 56, height: 56, borderRadius: 16, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', elevation: 3, borderWidth: 1.5, borderColor: COLORS.lavenderLight, shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6 },
   dpadSpacer: { width: 56, height: 56 },
-  dpadCenter: {
-    width: 56, height: 56, borderRadius: 16,
-    backgroundColor: COLORS.lavenderLight, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: COLORS.primary + '40',
-  },
+  dpadCenter: { width: 56, height: 56, borderRadius: 16, backgroundColor: COLORS.lavenderLight, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40' },
   dpadBtnText: { fontSize: 26, color: COLORS.primaryDark, fontWeight: '700' },
   swipeHint: { textAlign: 'center', fontSize: 13, color: COLORS.textMuted, marginTop: 8 },
 });

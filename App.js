@@ -1,13 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import * as NavigationBar from 'expo-navigation-bar';
+import React, { useState, useCallback, useEffect, Suspense } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { COLORS, LEVELS } from './src/constants';
 import MainMenu from './src/screens/MainMenu';
 import Settings from './src/screens/Settings';
 import About from './src/screens/About';
 import LevelSelect from './src/screens/LevelSelect';
-import Game from './src/screens/Game';
 import Finish from './src/screens/Finish';
+
+const Game = React.lazy(() => import('./src/screens/Game'));
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -48,8 +48,11 @@ function AppContent() {
   const [levelResults, setLevelResults] = useState([]);
 
   useEffect(() => {
-    try { NavigationBar.setVisibilityAsync('hidden'); } catch (_) {}
-    try { NavigationBar.setBehaviorAsync('overlay-swipe'); } catch (_) {}
+    try {
+      const NavBar = require('expo-navigation-bar');
+      NavBar.setVisibilityAsync('hidden');
+      NavBar.setBehaviorAsync('overlay-swipe');
+    } catch (_) {}
   }, []);
 
   const navigate = useCallback((target) => setScreen(target), []);
@@ -128,13 +131,15 @@ function AppContent() {
         );
       case 'game':
         return (
-          <Game
-            key={currentLevel?.id ?? 0}
-            level={currentLevel || LEVELS[0]}
-            onComplete={handleLevelComplete}
-            onBack={handleBack}
-            settings={settings}
-          />
+          <Suspense fallback={<View style={styles.loading}><ActivityIndicator size="large" color={COLORS.primaryDark} /><Text style={styles.loadingText}>Загрузка...</Text></View>}>
+            <Game
+              key={currentLevel?.id ?? 0}
+              level={currentLevel || LEVELS[0]}
+              onComplete={handleLevelComplete}
+              onBack={handleBack}
+              settings={settings}
+            />
+          </Suspense>
         );
       case 'finish':
         return <Finish onRestart={handleRestart} levelResults={levelResults} />;
@@ -164,4 +169,6 @@ const styles = StyleSheet.create({
   },
   errorText: { fontSize: 22, color: COLORS.text, textAlign: 'center', marginTop: 16 },
   errorSub: { fontSize: 16, color: COLORS.textLight, marginTop: 8 },
+  loading: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { fontSize: 18, color: COLORS.textLight, marginTop: 16 },
 });

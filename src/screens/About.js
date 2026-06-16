@@ -14,7 +14,7 @@ export default function About({ onBack }) {
           <Text style={{ fontSize: 56 }}>🐱</Text>
         </View>
         <Text style={styles.title}>Лабиринт для Кати</Text>
-        <Text style={styles.version}>Версия 1.0</Text>
+        <Text style={styles.version}>Версия 1.1</Text>
         <View style={styles.divider} />
         <Text style={styles.heartText}>Сделано с ❤️</Text>
         <Text style={styles.descText}>специально для самого важного человека</Text>

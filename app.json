@@ -3,7 +3,7 @@
     "owner": "moty2111",
     "name": "Лабиринт для Кати",
     "slug": "MazeGame",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.moty2111.mazegame",
-      "buildNumber": "1.0.0",
+      "buildNumber": "1.1.0",
       "infoPlist": {
         "NSMotionUsageDescription": "Используется для управления котёнком наклоном телефона"
       }
