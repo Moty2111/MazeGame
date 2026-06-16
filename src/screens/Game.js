@@ -8,13 +8,14 @@ import {
   Animated,
   useWindowDimensions,
 } from 'react-native';
+import { Audio } from 'expo-av';
 import { DeviceMotion } from 'expo-sensors';
 import { COLORS } from '../constants';
 import { generateMaze } from '../mazeGenerator';
 import Maze from '../components/Maze';
 
 const TILT_THRESHOLD = 0.5;
-const TILT_COOLDOWN = 300;
+const TILT_COOLDOWN = 200;
 
 function tryMove(playerPos, direction, grid) {
   const { row, col } = playerPos;
@@ -53,6 +54,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
   const posRef = useRef(playerPos);
   const mazeRef = useRef(maze);
   const winRef = useRef(isWin);
+  const soundRef = useRef(null);
 
   posRef.current = playerPos;
   mazeRef.current = maze;
@@ -78,8 +80,40 @@ export default function Game({ level, onComplete, onBack, settings }) {
   }, [isWin]);
 
   useEffect(() => {
-    DeviceMotion.isAvailableAsync().then(setTiltAvailable).catch(() => setTiltAvailable(false));
+    DeviceMotion.isAvailableAsync()
+      .then((avail) => {
+        setTiltAvailable(avail);
+        if (avail) DeviceMotion.setUpdateInterval(100);
+      })
+      .catch(() => setTiltAvailable(false));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAudio() {
+      try {
+        if (soundRef.current) {
+          await soundRef.current.unloadAsync().catch(() => {});
+          soundRef.current = null;
+        }
+        const { sound } = await Audio.Sound.createAsync(
+          require('../../assets/audio/bgmusic.mp3'),
+          { isLooping: true, volume: settings.volume }
+        );
+        if (cancelled) { await sound.unloadAsync().catch(() => {}); return; }
+        soundRef.current = sound;
+        if (settings.soundEnabled) await sound.playAsync();
+      } catch (_) {}
+    }
+    loadAudio();
+    return () => {
+      cancelled = true;
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => {});
+        soundRef.current = null;
+      }
+    };
+  }, [level, settings.soundEnabled, settings.volume]);
 
   const doMove = useCallback((direction) => {
     if (winRef.current || !mazeRef.current) return;
@@ -124,6 +158,8 @@ export default function Game({ level, onComplete, onBack, settings }) {
   const cellSize = Math.floor((width - 48) / Math.max(level.cols, level.rows));
   const starScale = starAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1.2] });
 
+  const showDpad = settings.controlMode === 'buttons' || settings.controlMode === 'tilt';
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
@@ -165,34 +201,38 @@ export default function Game({ level, onComplete, onBack, settings }) {
       )}
       {!showComplete && (
         <View style={styles.controlsContainer}>
-          <View style={styles.dpad}>
-            <View style={styles.dpadRow}>
-              <View style={styles.dpadSpacer} />
-              <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('UP')} activeOpacity={0.6}>
-                <Text style={styles.dpadBtnText}>↑</Text>
-              </TouchableOpacity>
-              <View style={styles.dpadSpacer} />
-            </View>
-            <View style={styles.dpadRow}>
-              <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('LEFT')} activeOpacity={0.6}>
-                <Text style={styles.dpadBtnText}>←</Text>
-              </TouchableOpacity>
-              <View style={styles.dpadCenter}>
-                <Text style={{ fontSize: 22 }}>🐱</Text>
+          {showDpad && (
+            <View style={styles.dpad}>
+              <View style={styles.dpadRow}>
+                <View style={styles.dpadSpacer} />
+                <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('UP')} activeOpacity={0.6}>
+                  <Text style={styles.dpadBtnText}>↑</Text>
+                </TouchableOpacity>
+                <View style={styles.dpadSpacer} />
               </View>
-              <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('RIGHT')} activeOpacity={0.6}>
-                <Text style={styles.dpadBtnText}>→</Text>
-              </TouchableOpacity>
+              <View style={styles.dpadRow}>
+                <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('LEFT')} activeOpacity={0.6}>
+                  <Text style={styles.dpadBtnText}>←</Text>
+                </TouchableOpacity>
+                <View style={styles.dpadCenter}>
+                  <Text style={{ fontSize: 22 }}>🐱</Text>
+                </View>
+                <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('RIGHT')} activeOpacity={0.6}>
+                  <Text style={styles.dpadBtnText}>→</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.dpadRow}>
+                <View style={styles.dpadSpacer} />
+                <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('DOWN')} activeOpacity={0.6}>
+                  <Text style={styles.dpadBtnText}>↓</Text>
+                </TouchableOpacity>
+                <View style={styles.dpadSpacer} />
+              </View>
             </View>
-            <View style={styles.dpadRow}>
-              <View style={styles.dpadSpacer} />
-              <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('DOWN')} activeOpacity={0.6}>
-                <Text style={styles.dpadBtnText}>↓</Text>
-              </TouchableOpacity>
-              <View style={styles.dpadSpacer} />
-            </View>
-          </View>
-          <Text style={styles.swipeHint}>👆 Проведи по лабиринту или нажми стрелки</Text>
+          )}
+          <Text style={styles.swipeHint}>
+            {settings.controlMode === 'swipe' ? '👆 Проведи по лабиринту' : '👆 Или проведи по лабиринту'}
+          </Text>
         </View>
       )}
     </View>
@@ -203,34 +243,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, paddingTop: 50 },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 4 },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    marginRight: 10,
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
+    elevation: 2, marginRight: 10,
   },
   backBtnText: { fontSize: 22, color: COLORS.primaryDark, fontWeight: '700' },
   topInfo: { flex: 1 },
   levelTitle: { fontSize: 20, color: COLORS.text, fontWeight: '700' },
   levelSub: { fontSize: 13, color: COLORS.textLight },
   timerBox: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    elevation: 2,
+    backgroundColor: COLORS.white, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, elevation: 2,
   },
   timerText: { fontSize: 18, color: COLORS.primaryDark, fontWeight: '700' },
-  movesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 4,
-    gap: 8,
-  },
+  movesRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, marginBottom: 4, gap: 8 },
   movesText: { fontSize: 14, color: COLORS.textLight },
   tiltBadge: { fontSize: 12, color: COLORS.primaryDark, backgroundColor: COLORS.lavenderLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   mazeContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, position: 'relative' },
@@ -241,31 +266,16 @@ const styles = StyleSheet.create({
   },
   winText: { fontSize: 24, color: COLORS.primaryDark, marginTop: 8, fontWeight: '700' },
   completePanel: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 20,
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    paddingHorizontal: 24, paddingTop: 8, paddingBottom: 20, alignItems: 'center',
+    backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 12,
   },
   completeTitle: { fontSize: 22, color: COLORS.text, marginBottom: 4, fontWeight: '700' },
   completeStats: { fontSize: 15, color: COLORS.textLight, marginBottom: 12 },
   nextBtn: {
-    backgroundColor: COLORS.primaryDark,
-    paddingVertical: 14,
-    paddingHorizontal: 44,
-    borderRadius: 30,
-    elevation: 4,
-    shadowColor: COLORS.primaryDark,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    backgroundColor: COLORS.primaryDark, paddingVertical: 14, paddingHorizontal: 44,
+    borderRadius: 30, elevation: 4,
+    shadowColor: COLORS.primaryDark, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8,
   },
   nextBtnText: { fontSize: 20, color: COLORS.white, fontWeight: '600' },
   controlsContainer: { paddingBottom: 16, paddingHorizontal: 24 },
@@ -284,5 +294,5 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: COLORS.primary + '40',
   },
   dpadBtnText: { fontSize: 26, color: COLORS.primaryDark, fontWeight: '700' },
-  swipeHint: { textAlign: 'center', fontSize: 13, color: COLORS.textMuted },
+  swipeHint: { textAlign: 'center', fontSize: 13, color: COLORS.textMuted, marginTop: 8 },
 });

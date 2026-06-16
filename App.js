@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from './src/constants';
-import { LEVELS } from './src/constants';
+import * as NavigationBar from 'expo-navigation-bar';
+import { COLORS, LEVELS } from './src/constants';
 import MainMenu from './src/screens/MainMenu';
 import Settings from './src/screens/Settings';
 import About from './src/screens/About';
@@ -23,7 +23,6 @@ class ErrorBoundary extends React.Component {
   }
   render() {
     if (this.state.hasError) {
-      console.log('ERROR:', this.state.error?.toString());
       return (
         <View style={styles.errorContainer}>
           <Text style={{ fontSize: 64 }}>😿</Text>
@@ -42,10 +41,16 @@ function AppContent() {
     soundEnabled: true,
     volume: 0.6,
     controlMode: 'swipe',
+    vibrationEnabled: true,
   });
   const [completedLevels, setCompletedLevels] = useState([]);
   const [currentLevel, setCurrentLevel] = useState(null);
   const [levelResults, setLevelResults] = useState([]);
+
+  useEffect(() => {
+    try { NavigationBar.setVisibilityAsync('hidden'); } catch (_) {}
+    try { NavigationBar.setBehaviorAsync('overlay-swipe'); } catch (_) {}
+  }, []);
 
   const navigate = useCallback((target) => setScreen(target), []);
   const handlePlay = useCallback(() => navigate('levelSelect'), [navigate]);
@@ -90,12 +95,26 @@ function AppContent() {
     setSettings(newSettings);
   }, []);
 
+  const handleResetProgress = useCallback(() => {
+    setCompletedLevels([]);
+    setCurrentLevel(null);
+    setLevelResults([]);
+  }, []);
+
   const renderScreen = () => {
     switch (screen) {
       case 'mainMenu':
         return <MainMenu onPlay={handlePlay} onSettings={handleSettings} onAbout={handleAbout} />;
       case 'settings':
-        return <Settings settings={settings} onUpdateSettings={handleUpdateSettings} onBack={handleBack} />;
+        return (
+          <Settings
+            settings={settings}
+            onUpdateSettings={handleUpdateSettings}
+            onBack={handleBack}
+            onResetProgress={handleResetProgress}
+            hasProgress={completedLevels.length > 0}
+          />
+        );
       case 'about':
         return <About onBack={handleBack} />;
       case 'levelSelect':
@@ -108,7 +127,15 @@ function AppContent() {
           />
         );
       case 'game':
-        return <Game level={currentLevel || LEVELS[0]} onComplete={handleLevelComplete} onBack={handleBack} settings={settings} />;
+        return (
+          <Game
+            key={currentLevel?.id ?? 0}
+            level={currentLevel || LEVELS[0]}
+            onComplete={handleLevelComplete}
+            onBack={handleBack}
+            settings={settings}
+          />
+        );
       case 'finish':
         return <Finish onRestart={handleRestart} levelResults={levelResults} />;
       default:
@@ -135,15 +162,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 32,
   },
-  errorText: {
-    fontSize: 22,
-    color: COLORS.text,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  errorSub: {
-    fontSize: 16,
-    color: COLORS.textLight,
-    marginTop: 8,
-  },
+  errorText: { fontSize: 22, color: COLORS.text, textAlign: 'center', marginTop: 16 },
+  errorSub: { fontSize: 16, color: COLORS.textLight, marginTop: 8 },
 });

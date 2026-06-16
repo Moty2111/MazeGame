@@ -13,6 +13,8 @@ function Maze({ maze, playerPos, level, onMove, cellSize: propCellSize }) {
   const mw = cs * level.cols;
   const mh = cs * level.rows;
 
+  if (!maze || maze.length !== level.rows || !maze[0] || maze[0].length !== level.cols) return null;
+
   const ref = useRef(onMove);
   useEffect(() => { ref.current = onMove; }, [onMove]);
   const last = useRef({ x: 0, y: 0 });
