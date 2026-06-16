@@ -233,16 +233,36 @@ async function main() {
 
   const outDir = path.join(__dirname, '..', 'assets');
 
-  await sharp(pix, { raw: { width: S, height: S, channels: 4 } })
-    .png().toFile(path.join(outDir, 'icon.png'));
+  // SVG badge overlay with "ЛК" text
+  const badgeSvg = Buffer.from(
+    `<svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7C3AED"/>
+          <stop offset="100%" stop-color="#C084FC"/>
+        </linearGradient>
+      </defs>
+      <rect x="340" y="780" width="344" height="140" rx="70" ry="70" fill="url(#bg)" opacity="0.92"/>
+      <text x="512" y="878" text-anchor="middle" font-family="sans-serif" font-weight="800"
+            font-size="80" fill="white" letter-spacing="8">ЛК</text>
+    </svg>`
+  );
 
-  await sharp(pix, { raw: { width: S, height: S, channels: 4 } })
-    .resize(48).png().toFile(path.join(outDir, 'favicon.png'));
+  async function overlayBadge(srcBuf) {
+    return sharp(srcBuf, { raw: { width: S, height: S, channels: 4 } })
+      .composite([{ input: badgeSvg, top: 0, left: 0 }])
+      .png().toBuffer();
+  }
 
-  await sharp(pix, { raw: { width: S, height: S, channels: 4 } })
-    .resize(1024).png().toFile(path.join(outDir, 'splash-icon.png'));
+  const iconBuf = await overlayBadge(pix);
+  await sharp(iconBuf).toFile(path.join(outDir, 'icon.png'));
 
-  // adaptive icon foreground (no rounded corners mask)
+  const f48Buf = await overlayBadge(pix);
+  await sharp(f48Buf).resize(48).toFile(path.join(outDir, 'favicon.png'));
+
+  await sharp(iconBuf).resize(1024).toFile(path.join(outDir, 'splash-icon.png'));
+
+  // adaptive icon foreground
   const fgPix = Buffer.alloc(S * S * 4);
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
@@ -250,8 +270,8 @@ async function main() {
       fgPix[i] = pix[i]; fgPix[i+1] = pix[i+1]; fgPix[i+2] = pix[i+2]; fgPix[i+3] = pix[i+3];
     }
   }
-  await sharp(fgPix, { raw: { width: S, height: S, channels: 4 } })
-    .resize(1024).png().toFile(path.join(outDir, 'android-icon-foreground.png'));
+  const fgBuf = await overlayBadge(fgPix);
+  await sharp(fgBuf).resize(1024).toFile(path.join(outDir, 'android-icon-foreground.png'));
 
   // adaptive icon background
   const bgPix = Buffer.alloc(S * S * 4);
@@ -264,7 +284,7 @@ async function main() {
   await sharp(bgPix, { raw: { width: S, height: S, channels: 4 } })
     .resize(1024).png().toFile(path.join(outDir, 'android-icon-background.png'));
 
-  // monochrome icon (silhouette for theme variants)
+  // monochrome icon
   const monoPix = Buffer.alloc(S * S * 4);
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {

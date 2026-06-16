@@ -30,8 +30,10 @@ jobs:
       - name: Установка зависимостей
         run: npm ci
 
-      - name: Генерация нативного Android проекта
-        run: npx expo prebuild --platform android --no-install
+      - name: Очистка и генерация нативного Android проекта
+        run: |
+          rm -rf android
+          npx expo prebuild --platform android --clean --no-install
 
       - name: Сборка APK
         run: cd android && ./gradlew assembleRelease

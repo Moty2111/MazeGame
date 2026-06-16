@@ -1,24 +1,28 @@
-import { Audio } from 'expo-av';
+let Audio = null;
+try { Audio = require('expo-av').Audio; } catch (_) {}
 
 let musicSound = null;
 let isMusicLoaded = false;
 
+function guard(fn) {
+  try { return fn(); } catch (_) { return null; }
+}
+
 export async function initAudio() {
-  try {
+  if (!Audio) return;
+  await guard(async () => {
     await Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
       staysActiveInBackground: false,
       shouldDuckAndroid: true,
     });
-  } catch (_) {}
+  });
 }
 
 export async function loadMusic() {
-  try {
-    if (musicSound) {
-      await musicSound.unloadAsync();
-      musicSound = null;
-    }
+  if (!Audio) return;
+  await guard(async () => {
+    if (musicSound) { await musicSound.unloadAsync(); musicSound = null; }
     const { sound } = await Audio.Sound.createAsync(
       require('../assets/audio/music.mp3'),
       { isLooping: true, volume: 0.6 },
@@ -27,60 +31,35 @@ export async function loadMusic() {
     );
     musicSound = sound;
     isMusicLoaded = true;
-  } catch (_) {
-    isMusicLoaded = false;
-  }
+  });
 }
 
 export async function playMusic(volume = 0.6) {
   if (!isMusicLoaded || !musicSound) return;
-  try {
+  await guard(async () => {
     await musicSound.setVolumeAsync(volume);
     await musicSound.playAsync();
-  } catch (_) {}
+  });
 }
 
 export async function pauseMusic() {
   if (!isMusicLoaded || !musicSound) return;
-  try {
+  await guard(async () => {
     await musicSound.pauseAsync();
-  } catch (_) {}
+  });
 }
 
 export async function setMusicVolume(volume) {
   if (!isMusicLoaded || !musicSound) return;
-  try {
+  await guard(async () => {
     await musicSound.setVolumeAsync(volume);
-  } catch (_) {}
+  });
 }
 
 export async function unloadMusic() {
   if (musicSound) {
-    try { await musicSound.unloadAsync(); } catch (_) {}
+    await guard(async () => { await musicSound.unloadAsync(); });
     musicSound = null;
     isMusicLoaded = false;
   }
-}
-
-let sfxCache = {};
-
-export async function playMoveSfx() {
-  // light tap on move
-}
-
-export async function playWinSfx() {
-  try {
-    const { sound } = await Audio.Sound.createAsync(
-      require('../assets/audio/music.mp3'),
-      { volume: 1.0, positionMillis: 0 }
-    );
-    sfxCache.win = sound;
-    await sound.playAsync();
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.didJustFinish) {
-        sound.unloadAsync();
-        delete sfxCache.win;
-      }
-    });
-  } catch (_) {}
 }

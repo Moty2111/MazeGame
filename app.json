@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.moty2111.mazegame",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#FFF8F0",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -33,7 +33,9 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [],
+    "plugins": [
+      "expo-av"
+    ],
     "extra": {
       "eas": {
         "projectId": "7b3f0249-094b-462b-bdd1-a74384bd6afa"
