@@ -11,6 +11,8 @@ import {
 import { COLORS, CONTROL_MODES } from '../constants';
 
 export default function Settings({ onBack, settings, onUpdateSettings, onResetProgress, hasProgress }) {
+  const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
+  const [volume, setVolume] = useState(settings.volume);
   const [controlMode, setControlMode] = useState(settings.controlMode);
   const [vibrationEnabled, setVibrationEnabled] = useState(settings.vibrationEnabled ?? true);
 
@@ -18,10 +20,21 @@ export default function Settings({ onBack, settings, onUpdateSettings, onResetPr
     onUpdateSettings({ ...settings, [key]: value });
   };
 
+  const handleSoundToggle = () => {
+    const newVal = !soundEnabled;
+    setSoundEnabled(newVal);
+    update('soundEnabled', newVal);
+  };
+
   const handleVibrationToggle = () => {
     const newVal = !vibrationEnabled;
     setVibrationEnabled(newVal);
     update('vibrationEnabled', newVal);
+  };
+
+  const handleVolumeChange = (newVolume) => {
+    setVolume(newVolume);
+    update('volume', newVolume);
   };
 
   const handleControlMode = (mode) => {
@@ -50,6 +63,36 @@ export default function Settings({ onBack, settings, onUpdateSettings, onResetPr
         <Text style={styles.title}>Настройки</Text>
       </View>
       <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Звук</Text>
+          <Text style={styles.sectionIcon}>🔊</Text>
+          <TouchableOpacity style={styles.toggleRow} onPress={handleSoundToggle}>
+            <Text style={styles.toggleLabel}>Музыка</Text>
+            <View style={[styles.toggle, soundEnabled && styles.toggleActive]}>
+              <View style={[styles.toggleCircle, soundEnabled && styles.toggleCircleActive]} />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.volumeLabel}>Громкость</Text>
+          <View style={styles.volumeRow}>
+            {[
+              { label: 'Выкл', value: 0 },
+              { label: 'Тихо', value: 0.3 },
+              { label: 'Средне', value: 0.6 },
+              { label: 'Громко', value: 1 },
+            ].map((level) => (
+              <TouchableOpacity
+                key={level.value}
+                style={[styles.volumeBtn, volume === level.value && styles.volumeBtnActive]}
+                onPress={() => handleVolumeChange(level.value)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.volumeBtnText, volume === level.value && styles.volumeBtnTextActive]}>
+                  {level.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Управление</Text>
           <Text style={styles.sectionIcon}>🎮</Text>
@@ -121,6 +164,16 @@ const styles = StyleSheet.create({
   toggleActive: { backgroundColor: COLORS.mint },
   toggleCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.white, elevation: 2 },
   toggleCircleActive: { alignSelf: 'flex-end' },
+  volumeLabel: { fontSize: 16, color: COLORS.textLight, marginBottom: 8, fontWeight: '500' },
+  volumeRow: { flexDirection: 'row', gap: 8 },
+  volumeBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: COLORS.bg, alignItems: 'center',
+    borderWidth: 1.5, borderColor: COLORS.lavenderLight,
+  },
+  volumeBtnActive: { backgroundColor: COLORS.primaryDark, borderColor: COLORS.primaryDark },
+  volumeBtnText: { fontSize: 14, color: COLORS.text, fontWeight: '600' },
+  volumeBtnTextActive: { color: COLORS.white },
   controlRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16,
     borderRadius: 14, marginBottom: 8, borderWidth: 1.5, borderColor: COLORS.lavenderLight,
