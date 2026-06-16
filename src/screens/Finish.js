@@ -10,25 +10,28 @@ import {
 } from 'react-native';
 import { COLORS } from '../constants';
 
-const CONFETTI_COLORS = ['#D8B4FE', '#86EFAC', '#FDE68A', '#FCA5A5', '#93C5FD', '#FDBA74', '#C4B5D4', '#FBBF24'];
+const CONFETTI_COLORS = ['#C084FC', '#6EE7A0', '#FDE68A', '#FCA5A5', '#93C5FD', '#FDBA74', '#DDD6FE', '#FBBF24', '#A78BFA', '#34D399'];
 
-function ConfettiPiece({ delay, duration, color, side, height }) {
+function ConfettiPiece({ delay, duration, color, side, height, startX }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(anim, { toValue: 1, duration, delay, useNativeDriver: true }).start();
   }, []);
 
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [-50, height] });
-  const translateX = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [side * 50, side * 30, side * 80] });
-  const rotate = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${side * 360}deg`] });
-  const opacity = anim.interpolate({ inputRange: [0, 0.8, 1], outputRange: [1, 1, 0] });
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [-40, height + 40] });
+  const translateX = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, side * 40, side * 100] });
+  const rotate = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${side * 720}deg`] });
+  const opacity = anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 1, 0] });
 
   return (
     <Animated.View
       style={{
         position: 'absolute',
-        width: 10, height: 10, borderRadius: 2,
-        top: -20, left: '50%',
+        left: startX,
+        width: 8,
+        height: 12,
+        borderRadius: 2,
+        top: -20,
         backgroundColor: color,
         transform: [{ translateY }, { translateX }, { rotate }],
         opacity,
@@ -43,12 +46,13 @@ export default function Finish({ onRestart, levelResults }) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const [confetti] = useState(() =>
-    Array.from({ length: 30 }, (_, i) => ({
+    Array.from({ length: 50 }, (_, i) => ({
       id: i,
-      delay: Math.random() * 1000,
-      duration: 2000 + Math.random() * 3000,
+      delay: Math.random() * 2000,
+      duration: 2500 + Math.random() * 4000,
       color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
       side: Math.random() > 0.5 ? 1 : -1,
+      startX: Math.random() * width,
     }))
   );
 
@@ -69,11 +73,12 @@ export default function Finish({ onRestart, levelResults }) {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.finishBg} />
       {confetti.map((c) => (
-        <ConfettiPiece key={c.id} delay={c.delay} duration={c.duration} color={c.color} side={c.side} height={height} />
+        <ConfettiPiece key={c.id} delay={c.delay} duration={c.duration} color={c.color} side={c.side} height={height} startX={c.startX} />
       ))}
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-          <Text style={styles.title}>🎉 С Днём Рождения,</Text>
+          <Text style={styles.greeting}>🎉</Text>
+          <Text style={styles.title}>С Днём Рождения,</Text>
           <Text style={styles.titleName}>КАТЯ!</Text>
         </Animated.View>
         <Animated.View style={{ transform: [{ scale: catScale }] }}>
@@ -89,7 +94,7 @@ export default function Finish({ onRestart, levelResults }) {
           <Text style={styles.statsText}>Всего ходов: {totalMoves}</Text>
           <Text style={styles.statsText}>Общее время: {formatTime(totalTime)}</Text>
         </View>
-        <TouchableOpacity style={styles.restartBtn} onPress={onRestart} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.restartBtn} onPress={onRestart} activeOpacity={0.85}>
           <Text style={styles.restartBtnText}>🔄 Пройти заново</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -106,20 +111,29 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   content: { alignItems: 'center', paddingHorizontal: 32, zIndex: 10 },
-  title: { fontSize: 32, color: COLORS.text, textAlign: 'center' },
-  titleName: { fontSize: 52, color: COLORS.primaryDark, textAlign: 'center', marginTop: -4 },
-  divider: { width: 120, height: 2, backgroundColor: COLORS.primary, opacity: 0.3, marginBottom: 20 },
-  message: { fontSize: 18, color: COLORS.text, textAlign: 'center', lineHeight: 28, marginBottom: 24 },
+  greeting: { fontSize: 48, textAlign: 'center', marginBottom: 4 },
+  title: { fontSize: 30, color: COLORS.text, textAlign: 'center', fontWeight: '700' },
+  titleName: { fontSize: 56, color: COLORS.primaryDark, textAlign: 'center', marginTop: -4, fontWeight: '800' },
+  divider: { width: 100, height: 2, backgroundColor: COLORS.primary, opacity: 0.2, marginBottom: 20 },
+  message: { fontSize: 17, color: COLORS.text, textAlign: 'center', lineHeight: 26, marginBottom: 24 },
   statsCard: {
-    backgroundColor: COLORS.white, borderRadius: 16, padding: 20,
-    marginBottom: 24, width: '100%', elevation: 2,
+    backgroundColor: COLORS.white, borderRadius: 20, padding: 20,
+    marginBottom: 24, width: '100%', elevation: 3,
+    shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 10,
+    borderWidth: 1, borderColor: COLORS.goldLight,
   },
-  statsTitle: { fontSize: 18, color: COLORS.text, marginBottom: 8 },
-  statsText: { fontSize: 16, color: COLORS.textLight, marginBottom: 4 },
+  statsTitle: { fontSize: 18, color: COLORS.text, marginBottom: 8, fontWeight: '600' },
+  statsText: { fontSize: 15, color: COLORS.textLight, marginBottom: 4 },
   restartBtn: {
-    backgroundColor: COLORS.lavender, paddingVertical: 16, paddingHorizontal: 48,
-    borderRadius: 50, elevation: 4,
-    shadowColor: COLORS.primaryDark, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
+    backgroundColor: COLORS.primaryDark,
+    paddingVertical: 16,
+    paddingHorizontal: 52,
+    borderRadius: 50,
+    elevation: 5,
+    shadowColor: COLORS.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
   },
-  restartBtnText: { fontSize: 22, color: COLORS.white },
+  restartBtnText: { fontSize: 22, color: COLORS.white, fontWeight: '600' },
 });

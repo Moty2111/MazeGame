@@ -7,7 +7,7 @@ const SWIPE_THRESHOLD = 10;
 
 function Maze({ maze, playerPos, level, onMove, cellSize: propCellSize }) {
   const { width: screenWidth } = useWindowDimensions();
-  const padding = 24;
+  const padding = 20;
   const avail = screenWidth - padding * 2;
   const cs = propCellSize || Math.floor(avail / Math.max(level.cols, level.rows));
   const mw = cs * level.cols;
@@ -41,13 +41,26 @@ function Maze({ maze, playerPos, level, onMove, cellSize: propCellSize }) {
           if (!cell[wk]) continue;
           const jt = j[wk] || { x1: 0, y1: 0, x2: 0, y2: 0 };
           let x1, y1, x2, y2;
+          const wallColor = COLORS.wallLight;
+          const wallWidth = 2.5;
           switch (wk) {
-            case 'top': x1 = c * cs + jt.x1; y1 = r * cs + jt.y1; x2 = (c + 1) * cs + jt.x2; y2 = r * cs + jt.y2; break;
-            case 'bottom': x1 = c * cs + jt.x1; y1 = (r + 1) * cs + jt.y1; x2 = (c + 1) * cs + jt.x2; y2 = (r + 1) * cs + jt.y2; break;
-            case 'left': x1 = c * cs + jt.x1; y1 = r * cs + jt.y1; x2 = c * cs + jt.x2; y2 = (r + 1) * cs + jt.y2; break;
-            case 'right': x1 = (c + 1) * cs + jt.x1; y1 = r * cs + jt.y1; x2 = (c + 1) * cs + jt.x2; y2 = (r + 1) * cs + jt.y2; break;
+            case 'top':
+              x1 = c * cs + jt.x1; y1 = r * cs + jt.y1; x2 = (c + 1) * cs + jt.x2; y2 = r * cs + jt.y2;
+              walls.push(<Line key={`t${r}_${c}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={wallColor} strokeWidth={wallWidth} strokeLinecap="round" />);
+              break;
+            case 'bottom':
+              x1 = c * cs + jt.x1; y1 = (r + 1) * cs + jt.y1; x2 = (c + 1) * cs + jt.x2; y2 = (r + 1) * cs + jt.y2;
+              walls.push(<Line key={`b${r}_${c}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={wallColor} strokeWidth={wallWidth} strokeLinecap="round" />);
+              break;
+            case 'left':
+              x1 = c * cs + jt.x1; y1 = r * cs + jt.y1; x2 = c * cs + jt.x2; y2 = (r + 1) * cs + jt.y2;
+              walls.push(<Line key={`l${r}_${c}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={wallColor} strokeWidth={wallWidth} strokeLinecap="round" />);
+              break;
+            case 'right':
+              x1 = (c + 1) * cs + jt.x1; y1 = r * cs + jt.y1; x2 = (c + 1) * cs + jt.x2; y2 = (r + 1) * cs + jt.y2;
+              walls.push(<Line key={`r${r}_${c}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={wallColor} strokeWidth={wallWidth} strokeLinecap="round" />);
+              break;
           }
-          walls.push(<Line key={`${wk[0]}${r}_${c}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={COLORS.wall} strokeWidth={2.5} strokeLinecap="round" />);
         }
       }
     }
@@ -63,9 +76,16 @@ function Maze({ maze, playerPos, level, onMove, cellSize: propCellSize }) {
     <View style={[styles.box, { width: mw, height: mh }]} {...pan.panHandlers}>
       <Svg width={mw} height={mh} viewBox={`0 0 ${mw} ${mh}`}>
         {walls}
-        <SvgText x={gx} y={gy} fontSize={cs * 0.5} textAnchor="middle" dy={cs * 0.08}>🎁</SvgText>
-        <SvgText x={px} y={py} fontSize={cs * 0.55} textAnchor="middle" dy={cs * 0.08}>🐱</SvgText>
-        {isWin && <Circle cx={gx} cy={gy} r={cs * 0.4} fill="none" stroke={COLORS.gold} strokeWidth={3} strokeDasharray="6,4" opacity={0.7} />}
+        <Circle cx={gx} cy={gy} r={cs * 0.35} fill={COLORS.goldLight} opacity={0.5} />
+        <SvgText x={gx} y={gy} fontSize={cs * 0.45} textAnchor="middle" dy={cs * 0.08}>🎁</SvgText>
+        <Circle cx={px} cy={py} r={cs * 0.35} fill={COLORS.lavenderLight} opacity={0.4} />
+        <SvgText x={px} y={py} fontSize={cs * 0.5} textAnchor="middle" dy={cs * 0.08}>🐱</SvgText>
+        {isWin && (
+          <>
+            <Circle cx={gx} cy={gy} r={cs * 0.45} fill="none" stroke={COLORS.gold} strokeWidth={3} strokeDasharray="6,4" opacity={0.8} />
+            <Circle cx={gx} cy={gy} r={cs * 0.55} fill="none" stroke={COLORS.goldLight} strokeWidth={2} strokeDasharray="4,6" opacity={0.5} />
+          </>
+        )}
       </Svg>
     </View>
   );
@@ -74,10 +94,16 @@ function Maze({ maze, playerPos, level, onMove, cellSize: propCellSize }) {
 const styles = StyleSheet.create({
   box: {
     backgroundColor: COLORS.cream,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     elevation: 4,
     alignSelf: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.lavenderLight,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
   },
 });
 

@@ -1,6 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import * as NavigationBar from 'expo-navigation-bar';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { COLORS } from './src/constants';
 import { LEVELS } from './src/constants';
 import MainMenu from './src/screens/MainMenu';
@@ -47,11 +46,6 @@ function AppContent() {
   const [completedLevels, setCompletedLevels] = useState([]);
   const [currentLevel, setCurrentLevel] = useState(null);
   const [levelResults, setLevelResults] = useState([]);
-
-  useEffect(() => {
-    try { NavigationBar.setVisibilityAsync('hidden'); } catch (_) {}
-    try { NavigationBar.setBehaviorAsync('overlay-swipe'); } catch (_) {}
-  }, []);
 
   const navigate = useCallback((target) => setScreen(target), []);
   const handlePlay = useCallback(() => navigate('levelSelect'), [navigate]);

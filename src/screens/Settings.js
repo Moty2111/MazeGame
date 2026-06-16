@@ -44,13 +44,16 @@ export default function Settings({ onBack, settings, onUpdateSettings }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
-      <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
-        <Text style={styles.backBtnText}>← Назад</Text>
-      </TouchableOpacity>
-      <Text style={styles.title}>Настройки</Text>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+          <Text style={styles.backBtnText}>← Назад</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Настройки</Text>
+      </View>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔊 Звук</Text>
+          <Text style={styles.sectionTitle}>Звук</Text>
+          <Text style={styles.sectionIcon}>🔊</Text>
           <TouchableOpacity style={styles.toggleRow} onPress={handleSoundToggle}>
             <Text style={styles.toggleLabel}>Музыка</Text>
             <View style={[styles.toggle, soundEnabled && styles.toggleActive]}>
@@ -74,7 +77,8 @@ export default function Settings({ onBack, settings, onUpdateSettings }) {
           </View>
         </View>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎮 Управление</Text>
+          <Text style={styles.sectionTitle}>Управление</Text>
+          <Text style={styles.sectionIcon}>🎮</Text>
           {CONTROL_MODES.map((mode) => (
             <TouchableOpacity
               key={mode.id}
@@ -105,39 +109,41 @@ export default function Settings({ onBack, settings, onUpdateSettings }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-  },
-  backBtn: { marginBottom: 16 },
-  backBtnText: { fontSize: 22, color: COLORS.primaryDark },
-  title: { fontSize: 36, color: COLORS.text, marginBottom: 24 },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 24, paddingTop: 60 },
+  header: { marginBottom: 20 },
+  backBtn: { marginBottom: 12 },
+  backBtnText: { fontSize: 22, color: COLORS.primaryDark, fontWeight: '600' },
+  title: { fontSize: 32, color: COLORS.text, fontWeight: '700' },
   section: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
-    marginBottom: 16,
+    marginBottom: 12,
     elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    position: 'relative',
   },
-  sectionTitle: { fontSize: 22, color: COLORS.text, marginBottom: 16 },
+  sectionTitle: { fontSize: 22, color: COLORS.text, fontWeight: '600', marginBottom: 16 },
+  sectionIcon: { position: 'absolute', top: 20, right: 20, fontSize: 24, opacity: 0.3 },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  toggleLabel: { fontSize: 18, color: COLORS.text },
+  toggleLabel: { fontSize: 18, color: COLORS.text, fontWeight: '500' },
   toggle: {
-    width: 50,
+    width: 52,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.textLight,
+    backgroundColor: COLORS.textMuted,
     padding: 2,
     justifyContent: 'center',
   },
-  toggleActive: { backgroundColor: COLORS.secondary },
+  toggleActive: { backgroundColor: COLORS.mint },
   toggleCircle: {
     width: 24,
     height: 24,
@@ -146,40 +152,40 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   toggleCircleActive: { alignSelf: 'flex-end' },
-  volumeLabel: { fontSize: 16, color: COLORS.textLight, marginBottom: 8 },
+  volumeLabel: { fontSize: 16, color: COLORS.textLight, marginBottom: 8, fontWeight: '500' },
   volumeRow: { flexDirection: 'row', gap: 8 },
   volumeBtn: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.bgDark,
+    borderWidth: 1.5,
+    borderColor: COLORS.lavenderLight,
   },
-  volumeBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  volumeBtnText: { fontSize: 14, color: COLORS.text },
+  volumeBtnActive: { backgroundColor: COLORS.primaryDark, borderColor: COLORS.primaryDark },
+  volumeBtnText: { fontSize: 14, color: COLORS.text, fontWeight: '600' },
   volumeBtnTextActive: { color: COLORS.white },
   controlRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.bgDark,
+    borderWidth: 1.5,
+    borderColor: COLORS.lavenderLight,
   },
-  controlRowActive: { backgroundColor: COLORS.lavender + '20', borderColor: COLORS.primary },
+  controlRowActive: { backgroundColor: COLORS.lavenderLight, borderColor: COLORS.primary },
   controlIcon: { fontSize: 22, marginRight: 12 },
-  controlLabel: { flex: 1, fontSize: 18, color: COLORS.text },
-  controlLabelActive: { color: COLORS.primaryDark },
+  controlLabel: { flex: 1, fontSize: 18, color: COLORS.text, fontWeight: '500' },
+  controlLabelActive: { color: COLORS.primaryDark, fontWeight: '700' },
   radio: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: COLORS.textLight,
+    borderColor: COLORS.textMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -187,10 +193,14 @@ const styles = StyleSheet.create({
   radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primaryDark },
   helpCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
     marginBottom: 24,
     elevation: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
   },
-  helpText: { fontSize: 15, color: COLORS.textLight, lineHeight: 22 },
+  helpText: { fontSize: 15, color: COLORS.textLight, lineHeight: 24 },
 });

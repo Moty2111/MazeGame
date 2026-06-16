@@ -28,14 +28,15 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "navigationBar": {
+        "visible": "sticky-immersive"
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-navigation-bar"
-    ],
+    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "7b3f0249-094b-462b-bdd1-a74384bd6afa"

@@ -8,7 +8,6 @@ import {
   Animated,
   useWindowDimensions,
 } from 'react-native';
-import { Audio } from 'expo-av';
 import { DeviceMotion } from 'expo-sensors';
 import { COLORS } from '../constants';
 import { generateMaze } from '../mazeGenerator';
@@ -54,7 +53,6 @@ export default function Game({ level, onComplete, onBack, settings }) {
   const posRef = useRef(playerPos);
   const mazeRef = useRef(maze);
   const winRef = useRef(isWin);
-  const soundRef = useRef(null);
 
   posRef.current = playerPos;
   mazeRef.current = maze;
@@ -119,33 +117,6 @@ export default function Game({ level, onComplete, onBack, settings }) {
     return () => { if (subRef.current) { subRef.current.remove(); subRef.current = null; } };
   }, [settings.controlMode, tiltAvailable, doMove]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadAudio() {
-      try {
-        if (soundRef.current) {
-          await soundRef.current.unloadAsync().catch(() => {});
-          soundRef.current = null;
-        }
-        const { sound } = await Audio.Sound.createAsync(
-          require('../../assets/audio/bgmusic.mp3'),
-          { isLooping: true, volume: settings.volume }
-        );
-        if (cancelled) { await sound.unloadAsync().catch(() => {}); return; }
-        soundRef.current = sound;
-        if (settings.soundEnabled) await sound.playAsync();
-      } catch (_) {}
-    }
-    loadAudio();
-    return () => {
-      cancelled = true;
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
-    };
-  }, [level, settings.soundEnabled, settings.volume]);
-
   const handleMove = useCallback((dir) => doMove(dir), [doMove]);
   const handleNext = () => onComplete(level.id, moves, time);
 
@@ -157,20 +128,28 @@ export default function Game({ level, onComplete, onBack, settings }) {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+          <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
         <View style={styles.topInfo}>
           <Text style={styles.levelTitle}>{level.name}</Text>
           <Text style={styles.levelSub}>Уровень {level.id + 1} • {level.rows}×{level.cols}</Text>
         </View>
-        <Text style={styles.timerText}>{formatTime(time)}</Text>
+        <View style={styles.timerBox}>
+          <Text style={styles.timerText}>{formatTime(time)}</Text>
+        </View>
+      </View>
+      <View style={styles.movesRow}>
+        <Text style={styles.movesText}>Ходов: {moves}</Text>
+        {tiltAvailable && settings.controlMode === 'tilt' && (
+          <Text style={styles.tiltBadge}>📱 Наклон</Text>
+        )}
       </View>
       <Animated.View style={[styles.mazeContainer, { opacity: fadeAnim }]}>
         {maze && <Maze maze={maze} playerPos={playerPos} level={level} onMove={handleMove} cellSize={cellSize} />}
         {isWin && (
           <Animated.View style={[styles.winOverlay, { transform: [{ scale: starScale }] }]}>
-            <Text style={{ fontSize: 64 }}>⭐</Text>
+            <Text style={{ fontSize: 72 }}>⭐</Text>
             <Text style={styles.winText}>Уровень пройден!</Text>
           </Animated.View>
         )}
@@ -179,7 +158,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
         <View style={styles.completePanel}>
           <Text style={styles.completeTitle}>🎉 Уровень {level.id + 1} завершён!</Text>
           <Text style={styles.completeStats}>Ходов: {moves} • Время: {formatTime(time)}</Text>
-          <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.85}>
             <Text style={styles.nextBtnText}>{level.id < 4 ? '→ Следующий уровень' : '🎊 Финальный уровень!'}</Text>
           </TouchableOpacity>
         </View>
@@ -188,29 +167,29 @@ export default function Game({ level, onComplete, onBack, settings }) {
         <View style={styles.controlsContainer}>
           <View style={styles.dpad}>
             <View style={styles.dpadRow}>
-              <View style={[styles.dpadBtn, styles.dpadPlaceholder]} />
+              <View style={styles.dpadSpacer} />
               <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('UP')} activeOpacity={0.6}>
                 <Text style={styles.dpadBtnText}>↑</Text>
               </TouchableOpacity>
-              <View style={[styles.dpadBtn, styles.dpadPlaceholder]} />
+              <View style={styles.dpadSpacer} />
             </View>
             <View style={styles.dpadRow}>
               <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('LEFT')} activeOpacity={0.6}>
                 <Text style={styles.dpadBtnText}>←</Text>
               </TouchableOpacity>
-              <View style={[styles.dpadBtn, styles.dpadCenter]}>
-                <Text style={{ fontSize: 24 }}>🐱</Text>
+              <View style={styles.dpadCenter}>
+                <Text style={{ fontSize: 22 }}>🐱</Text>
               </View>
               <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('RIGHT')} activeOpacity={0.6}>
                 <Text style={styles.dpadBtnText}>→</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.dpadRow}>
-              <View style={[styles.dpadBtn, styles.dpadPlaceholder]} />
+              <View style={styles.dpadSpacer} />
               <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('DOWN')} activeOpacity={0.6}>
                 <Text style={styles.dpadBtnText}>↓</Text>
               </TouchableOpacity>
-              <View style={[styles.dpadBtn, styles.dpadPlaceholder]} />
+              <View style={styles.dpadSpacer} />
             </View>
           </View>
           <Text style={styles.swipeHint}>👆 Проведи по лабиринту или нажми стрелки</Text>
@@ -222,38 +201,88 @@ export default function Game({ level, onComplete, onBack, settings }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, paddingTop: 50 },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 8 },
-  backText: { fontSize: 28, color: COLORS.primaryDark, marginRight: 12 },
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 4 },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    marginRight: 10,
+  },
+  backBtnText: { fontSize: 22, color: COLORS.primaryDark, fontWeight: '700' },
   topInfo: { flex: 1 },
-  levelTitle: { fontSize: 20, color: COLORS.text },
-  levelSub: { fontSize: 14, color: COLORS.textLight },
-  timerText: { fontSize: 18, color: COLORS.primaryDark },
-  mazeContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24, position: 'relative' },
+  levelTitle: { fontSize: 20, color: COLORS.text, fontWeight: '700' },
+  levelSub: { fontSize: 13, color: COLORS.textLight },
+  timerBox: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    elevation: 2,
+  },
+  timerText: { fontSize: 18, color: COLORS.primaryDark, fontWeight: '700' },
+  movesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 4,
+    gap: 8,
+  },
+  movesText: { fontSize: 14, color: COLORS.textLight },
+  tiltBadge: { fontSize: 12, color: COLORS.primaryDark, backgroundColor: COLORS.lavenderLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  mazeContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, position: 'relative' },
   winOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 20,
   },
-  winText: { fontSize: 24, color: COLORS.primaryDark, marginTop: 8 },
-  completePanel: { paddingHorizontal: 24, paddingVertical: 16, alignItems: 'center' },
-  completeTitle: { fontSize: 22, color: COLORS.text, marginBottom: 4 },
-  completeStats: { fontSize: 16, color: COLORS.textLight, marginBottom: 12 },
+  winText: { fontSize: 24, color: COLORS.primaryDark, marginTop: 8, fontWeight: '700' },
+  completePanel: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 20,
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  completeTitle: { fontSize: 22, color: COLORS.text, marginBottom: 4, fontWeight: '700' },
+  completeStats: { fontSize: 15, color: COLORS.textLight, marginBottom: 12 },
   nextBtn: {
-    backgroundColor: COLORS.primary, paddingVertical: 14, paddingHorizontal: 40,
-    borderRadius: 30, elevation: 3,
-    shadowColor: COLORS.primaryDark, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6,
+    backgroundColor: COLORS.primaryDark,
+    paddingVertical: 14,
+    paddingHorizontal: 44,
+    borderRadius: 30,
+    elevation: 4,
+    shadowColor: COLORS.primaryDark,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  nextBtnText: { fontSize: 20, color: COLORS.white },
-  controlsContainer: { paddingBottom: 16 },
-  dpad: { alignItems: 'center', marginBottom: 8 },
+  nextBtnText: { fontSize: 20, color: COLORS.white, fontWeight: '600' },
+  controlsContainer: { paddingBottom: 16, paddingHorizontal: 24 },
+  dpad: { alignItems: 'center', marginBottom: 6 },
   dpadRow: { flexDirection: 'row', gap: 4 },
   dpadBtn: {
-    width: 56, height: 56, borderRadius: 14,
+    width: 56, height: 56, borderRadius: 16,
     backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
-    elevation: 2, borderWidth: 1, borderColor: COLORS.lavender + '40',
+    elevation: 3, borderWidth: 1.5, borderColor: COLORS.lavenderLight,
+    shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6,
   },
-  dpadPlaceholder: { backgroundColor: 'transparent', elevation: 0, borderWidth: 0 },
-  dpadCenter: { backgroundColor: COLORS.lavender + '30', borderColor: COLORS.primary },
-  dpadBtnText: { fontSize: 24, color: COLORS.primaryDark },
-  swipeHint: { textAlign: 'center', fontSize: 14, color: COLORS.textLight },
+  dpadSpacer: { width: 56, height: 56 },
+  dpadCenter: {
+    width: 56, height: 56, borderRadius: 16,
+    backgroundColor: COLORS.lavenderLight, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: COLORS.primary + '40',
+  },
+  dpadBtnText: { fontSize: 26, color: COLORS.primaryDark, fontWeight: '700' },
+  swipeHint: { textAlign: 'center', fontSize: 13, color: COLORS.textMuted },
 });
