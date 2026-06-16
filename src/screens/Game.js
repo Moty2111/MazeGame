@@ -8,17 +8,13 @@ import {
   Animated,
   useWindowDimensions,
 } from 'react-native';
+import { DeviceMotion } from 'expo-sensors';
 import { COLORS } from '../constants';
 import { generateMaze } from '../mazeGenerator';
 import Maze from '../components/Maze';
 
 const TILT_THRESHOLD = 0.5;
 const TILT_COOLDOWN = 200;
-
-let Audio = null;
-let DeviceMotion = null;
-try { Audio = require('expo-av').Audio; } catch (_) {}
-try { DeviceMotion = require('expo-sensors').DeviceMotion; } catch (_) {}
 
 function tryMove(playerPos, direction, grid) {
   const { row, col } = playerPos;
@@ -57,7 +53,6 @@ export default function Game({ level, onComplete, onBack, settings }) {
   const posRef = useRef(playerPos);
   const mazeRef = useRef(maze);
   const winRef = useRef(isWin);
-  const soundRef = useRef(null);
 
   posRef.current = playerPos;
   mazeRef.current = maze;
@@ -83,7 +78,6 @@ export default function Game({ level, onComplete, onBack, settings }) {
   }, [isWin]);
 
   useEffect(() => {
-    if (!DeviceMotion) return;
     DeviceMotion.isAvailableAsync()
       .then((avail) => {
         setTiltAvailable(avail);
@@ -91,34 +85,6 @@ export default function Game({ level, onComplete, onBack, settings }) {
       })
       .catch(() => setTiltAvailable(false));
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadAudio() {
-      if (!Audio) return;
-      try {
-        if (soundRef.current) {
-          await soundRef.current.unloadAsync().catch(() => {});
-          soundRef.current = null;
-        }
-        const { sound } = await Audio.Sound.createAsync(
-          require('../../assets/audio/bgmusic.mp3'),
-          { isLooping: true, volume: settings.volume }
-        );
-        if (cancelled) { await sound.unloadAsync().catch(() => {}); return; }
-        soundRef.current = sound;
-        if (settings.soundEnabled) await sound.playAsync();
-      } catch (_) {}
-    }
-    loadAudio();
-    return () => {
-      cancelled = true;
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {});
-        soundRef.current = null;
-      }
-    };
-  }, [level, settings.soundEnabled, settings.volume]);
 
   const doMove = useCallback((direction) => {
     if (winRef.current || !mazeRef.current) return;
@@ -136,7 +102,6 @@ export default function Game({ level, onComplete, onBack, settings }) {
   }, [level, starAnim]);
 
   useEffect(() => {
-    if (!DeviceMotion) return;
     if (settings.controlMode !== 'tilt' || !tiltAvailable) {
       if (subRef.current) { subRef.current.remove(); subRef.current = null; }
       return;
