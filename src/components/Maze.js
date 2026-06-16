@@ -3,7 +3,7 @@ import { View, PanResponder, StyleSheet, useWindowDimensions } from 'react-nativ
 import Svg, { Line, Circle, Text as SvgText } from 'react-native-svg';
 import { COLORS } from '../constants';
 
-const SWIPE_THRESHOLD = 10;
+const SWIPE_THRESHOLD = 6;
 
 function Maze({ maze, playerPos, level, onMove, cellSize: propCellSize }) {
   const { width: screenWidth } = useWindowDimensions();

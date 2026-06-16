@@ -24,7 +24,7 @@
       "package": "com.moty2111.mazegame",
       "versionCode": 5,
       "adaptiveIcon": {
-        "backgroundColor": "#FFF8F0",
+        "backgroundColor": "#EDE9FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

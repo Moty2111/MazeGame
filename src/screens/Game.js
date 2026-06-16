@@ -14,8 +14,8 @@ import { COLORS } from '../constants';
 import { generateMaze } from '../mazeGenerator';
 import Maze from '../components/Maze';
 
-const TILT_THRESHOLD = 0.3;
-const TILT_COOLDOWN = 180;
+const TILT_THRESHOLD = 0.2;
+const TILT_COOLDOWN = 120;
 
 function tryMove(playerPos, direction, grid) {
   const { row, col } = playerPos;
@@ -35,6 +35,27 @@ function tryMove(playerPos, direction, grid) {
       break;
   }
   return playerPos;
+}
+
+function DpadBtn({ dir, label, onMove }) {
+  const timer = useRef(null);
+  const handleIn = () => {
+    onMove(dir);
+    timer.current = setInterval(() => onMove(dir), 100);
+  };
+  const handleOut = () => {
+    if (timer.current) { clearInterval(timer.current); timer.current = null; }
+  };
+  return (
+    <TouchableOpacity
+      style={styles.dpadBtn}
+      onPressIn={handleIn}
+      onPressOut={handleOut}
+      activeOpacity={0.5}
+    >
+      <Text style={styles.dpadBtnText}>{label}</Text>
+    </TouchableOpacity>
+  );
 }
 
 export default function Game({ level, onComplete, onBack, settings }) {
@@ -84,7 +105,7 @@ export default function Game({ level, onComplete, onBack, settings }) {
     DeviceMotion.isAvailableAsync()
       .then((avail) => {
         setTiltAvailable(avail);
-        if (avail) DeviceMotion.setUpdateInterval(80);
+        if (avail) DeviceMotion.setUpdateInterval(50);
       })
       .catch(() => setTiltAvailable(false));
   }, []);
@@ -185,27 +206,19 @@ export default function Game({ level, onComplete, onBack, settings }) {
             <View style={styles.dpad}>
               <View style={styles.dpadRow}>
                 <View style={styles.dpadSpacer} />
-                <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('UP')} activeOpacity={0.6}>
-                  <Text style={styles.dpadBtnText}>↑</Text>
-                </TouchableOpacity>
+                <DpadBtn dir="UP" label="↑" onMove={handleMove} />
                 <View style={styles.dpadSpacer} />
               </View>
               <View style={styles.dpadRow}>
-                <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('LEFT')} activeOpacity={0.6}>
-                  <Text style={styles.dpadBtnText}>←</Text>
-                </TouchableOpacity>
+                <DpadBtn dir="LEFT" label="←" onMove={handleMove} />
                 <View style={styles.dpadCenter}>
                   <Text style={{ fontSize: 22 }}>🐱</Text>
                 </View>
-                <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('RIGHT')} activeOpacity={0.6}>
-                  <Text style={styles.dpadBtnText}>→</Text>
-                </TouchableOpacity>
+                <DpadBtn dir="RIGHT" label="→" onMove={handleMove} />
               </View>
               <View style={styles.dpadRow}>
                 <View style={styles.dpadSpacer} />
-                <TouchableOpacity style={styles.dpadBtn} onPress={() => handleMove('DOWN')} activeOpacity={0.6}>
-                  <Text style={styles.dpadBtnText}>↓</Text>
-                </TouchableOpacity>
+                <DpadBtn dir="DOWN" label="↓" onMove={handleMove} />
                 <View style={styles.dpadSpacer} />
               </View>
             </View>
